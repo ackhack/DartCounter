@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Agent(Explore)",
+      "Bash(node *)",
+      "Bash(wc *)",
+      "Bash(python3 *)",
+      "Bash(git diff *)",
+      "Bash(echo *)",
+      "Bash(cd *)"
+    ]
+  },
+  "$version": 4
+}

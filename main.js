@@ -17,6 +17,7 @@
   const MIN_PLAYERS = 2;
   const SCORES_PER_TURN = 3;
   const STORAGE_KEY_NAMES = 'dartcounter_player_names';
+  const MAX_TURN_VALUE = 60; // highest possible X01 turn (3×T20)
 
   // ===========================
   // STATE
@@ -56,7 +57,8 @@
 
   const screens = {
     setup: $('#setup-screen'),
-    game: $('#game-screen')
+    game: $('#game-screen'),
+    stats: $('#stats-screen')
   };
 
   let playerNames = loadPlayerNames();
@@ -88,7 +90,37 @@
   function loadStats() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_STATS);
-      return data ? JSON.parse(data) : { players: {}, games: [] };
+      const parsed = data ? JSON.parse(data) : { players: {}, games: [] };
+      if (parsed.players) {
+        for (const key of Object.keys(parsed.players)) {
+          const entry = parsed.players[key];
+          // Migrate legacy flat entries to the per-mode structure.
+          // The mode of old games is unrecoverable, so attribute them to X01.
+          // Legacy totalTurns accumulated per-dart counts (player.turns increments per dart).
+          if (entry && !entry.modes) {
+            entry.modes = {
+              x01: {
+                ...emptyModeStats(),
+                gamesPlayed: entry.gamesPlayed || 0,
+                wins: entry.wins || 0,
+                totalRuns: entry.totalRuns || 0,
+                totalDarts: entry.totalTurns || 0,
+                bestTurn: entry.bestTurn || 0,
+                bestScore: entry.bestScore || 0
+              },
+              cricket: emptyModeStats()
+            };
+            delete entry.gamesPlayed;
+            delete entry.wins;
+            delete entry.totalRuns;
+            delete entry.totalTurns;
+            delete entry.bestTurn;
+            delete entry.bestScore;
+            computeModeAverages(entry.modes.x01);
+          }
+        }
+      }
+      return parsed;
     } catch {
       return { players: {}, games: [] };
     }
@@ -151,28 +183,89 @@
     }
   }
 
-  function updatePlayerStats(player, runs, scoreDelta, finished) {
+  function emptyModeStats() {
+    return {
+      gamesPlayed: 0,
+      wins: 0,
+      totalRuns: 0,
+      totalTurns: 0,
+      totalDarts: 0,
+      maxDarts: 0,
+      bestTurn: 0,
+      bestScore: 0,  // X01: lowest remaining score
+      checkoutAttempts: 0,
+      checkouts: 0,
+      bullDarts: 0,
+      avgPerTurn: 0,
+      avgPerGame: 0,
+      winRate: 0,
+      checkoutPct: 0
+    };
+  }
+
+  function computeModeAverages(m) {
+    m.avgPerTurn = m.totalTurns > 0 ? Math.round(m.totalRuns / m.totalTurns * 10) / 10 : 0;
+    m.avgPerGame = m.gamesPlayed > 0 ? Math.round(m.totalRuns / m.gamesPlayed * 10) / 10 : 0;
+    m.winRate = m.gamesPlayed > 0 ? Math.round(m.wins / m.gamesPlayed * 100) : 0;
+    m.checkoutPct = m.checkoutAttempts > 0 ? Math.round(m.checkouts / m.checkoutAttempts * 100) : 0;
+  }
+
+  // Derived from history so undo can't skew the counts.
+  // A turn started from score <= MAX_TURN_VALUE was a checkout opportunity;
+  // the finishing turn is the player's last history entry.
+  function computeX01CheckoutStats(player) {
+    const entries = state.history.filter(h => h.playerId === player.id);
+    if (entries.length === 0) return { attempts: 0, made: 0 };
+    let afterScore = player.score;
+    let attempts = 0;
+    let made = 0;
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const startScore = afterScore + entries[i].total;
+      if (startScore <= MAX_TURN_VALUE) {
+        attempts++;
+        if (i === entries.length - 1 && player.finished) made++;
+      }
+      afterScore = startScore;
+    }
+    return { attempts, made };
+  }
+
+  function countBullDarts(player) {
+    let count = 0;
+    for (const h of state.history) {
+      if (h.playerId !== player.id) continue;
+      for (const t of h.throws) {
+        if (t === 'Bull' || t === 'BE') count++;
+      }
+    }
+    return count;
+  }
+
+  function updatePlayerStats(player, isWinner) {
     const key = player.name.toLowerCase();
     if (!stats.players[key]) {
-      stats.players[key] = {
-        name: player.name,
-        gamesPlayed: 0,
-        wins: 0,
-        totalRuns: 0,
-        totalTurns: 0,
-        bestTurn: 0,
-        bestScore: 0  // X01: lowest remaining score
-      };
+      stats.players[key] = { name: player.name, modes: { x01: emptyModeStats(), cricket: emptyModeStats() } };
     }
-    const p = stats.players[key];
-    p.gamesPlayed++;
-    p.totalRuns += runs;
-    p.totalTurns += player.turns;
-    if (runs > p.bestTurn) p.bestTurn = runs;
-    if (state.mode === 'x01' && player.score < p.bestScore && player.score >= 0) {
-      p.bestScore = player.score;
+    const m = stats.players[key].modes[state.mode];
+    const entries = state.history.filter(h => h.playerId === player.id);
+
+    m.gamesPlayed++;
+    if (isWinner) m.wins++;
+    m.totalRuns += player.runs;
+    m.totalTurns += entries.length;
+    m.totalDarts += player.turns;
+    if (player.turns > m.maxDarts) m.maxDarts = player.turns;
+    if (player.runs > m.bestTurn) m.bestTurn = player.runs;
+    if (state.mode === 'x01' && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
+      m.bestScore = player.score;
     }
-    if (finished) p.wins++;
+    m.bullDarts += countBullDarts(player);
+    if (state.mode === 'x01') {
+      const co = computeX01CheckoutStats(player);
+      m.checkoutAttempts += co.attempts;
+      m.checkouts += co.made;
+    }
+    computeModeAverages(m);
     saveStats();
   }
 
@@ -228,6 +321,13 @@
 
     // Start game
     $('#start-game-btn').addEventListener('click', startGame);
+
+    // Stats screen
+    $('#view-stats-btn').addEventListener('click', () => {
+      renderStatsScreen();
+      showScreen('stats');
+    });
+    $('#stats-back-btn').addEventListener('click', () => showScreen('setup'));
 
     // End game buttons
     $('#back-btn').addEventListener('click', backToSetup);
@@ -437,8 +537,7 @@
   }
 
   function showScreen(name) {
-    screens.setup.classList.remove('active');
-    screens.game.classList.remove('active');
+    Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[name].classList.add('active');
   }
 
@@ -1166,6 +1265,70 @@
   }
 
   // ===========================
+  // STATS SCREEN
+  // ===========================
+  function renderStatsScreen() {
+    const container = $('#stats-list');
+    container.innerHTML = '';
+
+    const entries = Object.values(stats.players)
+      .filter(e => e.modes)
+      .sort((a, b) => totalGames(b) - totalGames(a) || a.name.localeCompare(b.name));
+
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="stats-empty">No stats yet — finish a game to start tracking players.</div>';
+      return;
+    }
+
+    entries.forEach(entry => {
+      const el = document.createElement('div');
+      el.className = 'stats-player';
+      const cards = ['x01', 'cricket']
+        .map(mode => renderModeCard(entry, mode))
+        .filter(Boolean)
+        .join('');
+      el.innerHTML = `
+        <div class="stats-player-name">${entry.name}</div>
+        ${cards}
+      `;
+      container.appendChild(el);
+    });
+  }
+
+  function totalGames(entry) {
+    return (entry.modes.x01 ? entry.modes.x01.gamesPlayed : 0) + (entry.modes.cricket ? entry.modes.cricket.gamesPlayed : 0);
+  }
+
+  function renderModeCard(entry, mode) {
+    const m = entry.modes[mode];
+    if (!m || m.gamesPlayed === 0) return '';
+    const isX01 = mode === 'x01';
+    const cards = [
+      { value: m.gamesPlayed, label: 'Games' },
+      { value: m.wins, label: 'Wins' },
+      { value: `${m.winRate}%`, label: 'Win Rate' },
+      { value: m.avgPerTurn, label: 'Avg / Turn' },
+      { value: m.avgPerGame, label: 'Avg / Game' },
+      isX01
+        ? { value: m.bestTurn, label: 'Best Turn' }
+        : { value: m.bestTurn, label: 'Best Leg' },
+      isX01
+        ? { value: m.bestScore, label: 'Best Finish' }
+        : { value: m.bullDarts, label: 'Bull Darts' },
+      isX01
+        ? { value: m.checkoutAttempts > 0 ? `${m.checkoutPct}%` : '—', label: 'Checkout %' }
+        : { value: m.maxDarts, label: 'Max Darts' }
+    ];
+    return `
+      <div class="stats-mode-card">
+        <h3 class="stats-mode-title">${isX01 ? 'X01' : 'Cricket'}</h3>
+        <div class="stats-grid stats-grid-4">
+          ${cards.map(c => `<div class="stat-card"><div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div></div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ===========================
   // END GAME
   // ===========================
   function endGame() {
@@ -1186,7 +1349,7 @@
 
     // Update stats
     results.forEach((p, i) => {
-      updatePlayerStats(p, p.runs, 0, i === 0);
+      updatePlayerStats(p, i === 0);
     });
 
     // Save to history

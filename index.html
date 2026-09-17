@@ -56,24 +56,36 @@
       <datalist id="player-name-suggestions"></datalist>
 
       <button id="start-game-btn" class="start-btn">Start Game</button>
+      <button id="view-stats-btn" class="secondary-btn">Player Stats</button>
     </div>
+  </div>
+
+  <!-- STATS SCREEN -->
+  <div id="stats-screen" class="screen">
+    <header class="game-header">
+      <button id="stats-back-btn" class="icon-btn" title="Back to Setup">←</button>
+      <div class="header-center">
+        <span class="mode-label">Player Stats</span>
+      </div>
+      <div class="header-right"></div>
+    </header>
+    <main class="stats-layout">
+      <div id="stats-list" class="stats-list"></div>
+    </main>
   </div>
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <header class="game-header">
-      <div class="header-left">
-        <button id="back-btn" class="icon-btn" title="Back to Setup">←</button>
-        <h1 class="logo-sm">🎯 Dart Counter</h1>
-      </div>
+      <button id="back-btn" class="icon-btn" title="Back to Setup">←</button>
       <div class="header-center">
         <span id="game-mode-label" class="mode-label">X01</span>
-        <span class="separator">|</span>
+        <span class="separator">/</span>
         <span id="round-label">Round 1</span>
       </div>
       <div class="header-right">
         <span id="finish-count"></span>
-        <button id="end-game-btn" class="btn-small">End Game</button>
+        <button id="end-game-btn" class="btn-small">End</button>
       </div>
     </header>
 
