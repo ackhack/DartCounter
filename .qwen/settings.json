@@ -9,7 +9,9 @@
       "Bash(echo *)",
       "Bash(cd *)",
       "Bash(grep *)",
-      "Bash(tail *)"
+      "Bash(tail *)",
+      "Bash(git show *)",
+      "Bash(head *)"
     ]
   },
   "$version": 4

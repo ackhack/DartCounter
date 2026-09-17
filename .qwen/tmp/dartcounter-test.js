@@ -13,10 +13,14 @@ const localStorage = {
   removeItem: k => { delete store[k]; }
 };
 
-// pre-seed a legacy flat stats entry to test migration
+// pre-seed a legacy flat stats entry to test migration, plus a
+// current-format entry whose x01 bestTurn was inflated by the old
+// total-runs bug (301 > max possible single turn of 180) to test the repair
+const zeroMode = () => ({ gamesPlayed: 0, wins: 0, totalRuns: 0, totalTurns: 0, totalDarts: 0, maxDarts: 0, bestTurn: 0, bestScore: 0, checkoutAttempts: 0, checkouts: 0, bullDarts: 0, avgPerTurn: 0, avgPerGame: 0, winRate: 0, checkoutPct: 0 });
 store['dartcounter_stats'] = JSON.stringify({
   players: {
-    'legacy': { name: 'Legacy', gamesPlayed: 3, wins: 1, totalRuns: 900, totalTurns: 45, bestTurn: 180, bestScore: 0 }
+    'legacy': { name: 'Legacy', gamesPlayed: 3, wins: 1, totalRuns: 900, totalTurns: 45, bestTurn: 180, bestScore: 0 },
+    'old': { name: 'Old', modes: { x01: { ...zeroMode(), gamesPlayed: 1, wins: 0, totalRuns: 301, totalTurns: 5, totalDarts: 14, bestTurn: 301, bestScore: 21 }, cricket: zeroMode() } }
   },
   games: []
 });
@@ -237,7 +241,12 @@ assert.strictEqual(winner.modes.x01.checkoutPct, 100);
 assert.strictEqual(loser.modes.x01.checkouts, 0, 'loser never finished');
 assert.strictEqual(winner.modes.x01.bestScore, 0, 'winner finished, bestScore 0');
 assert.ok(loser.modes.x01.bestScore > 0, 'loser did not finish');
+// Best Turn must be a single-turn score: strategy turns are 180 (3xT20),
+// 61 (T20+1+MISS from 121), 60 (T20 checkout) — never the game-total runs
+assert.strictEqual(winner.modes.x01.bestTurn, 180, 'winner best turn is the 180 turn, not total runs (301)');
+assert.strictEqual(loser.modes.x01.bestTurn, 180, 'loser also threw an 180 turn before game over');
 assert.ok(winner.modes.x01.totalDarts >= winner.modes.x01.totalTurns * 3 - 3, 'darts >= turns*3 (last turn shorter)');
+assert.strictEqual(stats.players['old'].modes.x01.bestTurn, 0, 'corrupt pre-fix bestTurn (>180) is reset on load');
 console.log(`PASS 2: X01 game stats (winner=${winner.name}, ${winner.modes.x01.totalDarts} darts / ${winner.modes.x01.totalTurns} turns, checkout ${winner.modes.x01.checkoutPct}%)`);
 
 // ---------- TEST 2b: legacy migration (persisted after first saveStats) ----------
@@ -246,7 +255,7 @@ assert.ok(legacy.modes, 'legacy entry should have modes after migration');
 assert.strictEqual(legacy.modes.x01.gamesPlayed, 3);
 assert.strictEqual(legacy.modes.x01.totalDarts, 45, 'legacy totalTurns (per-dart) maps to totalDarts');
 assert.strictEqual(legacy.modes.x01.totalTurns, 0);
-assert.strictEqual(legacy.modes.x01.bestTurn, 180);
+assert.strictEqual(legacy.modes.x01.bestTurn, 0, 'legacy bestTurn was corrupt (max total runs) and unrecoverable — dropped');
 assert.strictEqual(legacy.modes.x01.bestScore, 0);
 assert.strictEqual(legacy.modes.cricket.gamesPlayed, 0);
 assert.ok(!('gamesPlayed' in legacy), 'flat fields should be removed');
@@ -282,6 +291,8 @@ const b2 = stats.players['bob'].modes.x01;
 assert.strictEqual(a2.gamesPlayed + b2.gamesPlayed, 4, 'both players at 2 games');
 assert.strictEqual(a2.wins + b2.wins, 2, 'two total wins across two games');
 assert.ok(a2.checkouts + b2.checkouts >= 2, 'each game produced a checkout');
+assert.strictEqual(a2.bestTurn, 180, 'bestTurn is the max single turn across games, not cumulative');
+assert.strictEqual(b2.bestTurn, 180, 'bestTurn is the max single turn across games, not cumulative');
 console.log(`PASS 4: replay accumulates (alice: ${a2.wins}W/${a2.gamesPlayed}G, bob: ${b2.wins}W/${b2.gamesPlayed}G)`);
 
 // ---------- TEST 5: stats persist across reload ----------
@@ -321,6 +332,9 @@ assert.strictEqual(carl.totalTurns, 3, 'Carl had 3 turns incl. the busted one');
 assert.strictEqual(carl.totalRuns, 242, 'bust value and auto-misses score nothing');
 assert.strictEqual(carl.checkoutAttempts, 1, 'busted turn started from <=60 — a missed checkout');
 assert.strictEqual(carl.checkouts, 0);
+// Busted turn totals 0 in history; both players' best turn is the opening 3xT20 turn
+assert.strictEqual(carl.bestTurn, 180, 'bust turn scores 0, best turn is the 180 turn');
+assert.strictEqual(dan.bestTurn, 180);
 assert.strictEqual(dan.wins, 1);
 assert.strictEqual(dan.checkouts, 1);
 console.log('PASS 7: bust ends turn, auto-misses, next player');

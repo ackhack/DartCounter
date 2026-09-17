@@ -16,7 +16,8 @@
   const MIN_PLAYERS = 2;
   const SCORES_PER_TURN = 3;
   const STORAGE_KEY_NAMES = 'dartcounter_player_names';
-  const MAX_TURN_VALUE = 60; // highest possible X01 turn (3×T20)
+  const MAX_TURN_VALUE = 60; // remaining score at or below which a turn counts as a checkout opportunity
+  const MAX_X01_TURN = 180;  // 3×T20 — highest possible single X01 turn score
 
   // ===========================
   // STATE
@@ -96,6 +97,8 @@
           // Migrate legacy flat entries to the per-mode structure.
           // The mode of old games is unrecoverable, so attribute them to X01.
           // Legacy totalTurns accumulated per-dart counts (player.turns increments per dart).
+          // Legacy bestTurn stored the max of per-game total runs (a bug, never a
+          // single-turn score); the per-turn data is gone, so drop it.
           if (entry && !entry.modes) {
             entry.modes = {
               x01: {
@@ -104,7 +107,6 @@
                 wins: entry.wins || 0,
                 totalRuns: entry.totalRuns || 0,
                 totalDarts: entry.totalTurns || 0,
-                bestTurn: entry.bestTurn || 0,
                 bestScore: entry.bestScore || 0
               },
               cricket: emptyModeStats()
@@ -117,6 +119,14 @@
             delete entry.bestScore;
             computeModeAverages(entry.modes.x01);
           }
+        }
+        // One-time repair for stats written before the per-turn bestTurn fix:
+        // bestTurn then stored the player's total runs per game, so any X01
+        // value above the max single-turn score is definitely corrupt. Reset
+        // it so the stat rebuilds from new games instead of staying pinned.
+        for (const entry of Object.values(parsed.players)) {
+          const x01 = entry && entry.modes && entry.modes.x01;
+          if (x01 && x01.bestTurn > MAX_X01_TURN) x01.bestTurn = 0;
         }
       }
       return parsed;
@@ -254,7 +264,9 @@
     m.totalTurns += entries.length;
     m.totalDarts += player.turns;
     if (player.turns > m.maxDarts) m.maxDarts = player.turns;
-    if (player.runs > m.bestTurn) m.bestTurn = player.runs;
+    // Best single turn this game (busted X01 turns total 0 by history accounting)
+    const playerBestTurn = entries.reduce((max, h) => Math.max(max, h.total || 0), 0);
+    if (playerBestTurn > m.bestTurn) m.bestTurn = playerBestTurn;
     if (state.mode === 'x01' && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
       m.bestScore = player.score;
     }
