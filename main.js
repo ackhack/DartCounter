@@ -368,7 +368,7 @@
   function updateSetupVisibility() {
     const x01Opts = $('#x01-options');
     if (x01Opts) {
-      x01Opts.style.display = state.mode === 'x01' ? 'flex' : 'none';
+      x01Opts.style.display = state.mode === 'x01' ? 'block' : 'none';
     }
   }
 
