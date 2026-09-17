@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Dart Counter</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#16213e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen" class="screen active">
+    <div class="setup-container">
+      <h1 class="logo">🎯 Dart Counter</h1>
+
+      <div class="setup-section">
+        <h2>Game Mode</h2>
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="x01">X01</button>
+          <button class="mode-btn" data-mode="cricket">Cricket</button>
+        </div>
+      </div>
+
+      <div class="setup-section" id="x01-options">
+        <h2>Starting Score</h2>
+        <div class="score-selector">
+          <button class="score-btn active" data-score="301">301</button>
+          <button class="score-btn" data-score="501">501</button>
+          <button class="score-btn" data-score="701">701</button>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h2>Number of Players</h2>
+        <div class="player-count-selector">
+          <button class="count-btn" data-count="2">2</button>
+          <button class="count-btn active" data-count="3">3</button>
+          <button class="count-btn" data-count="4">4</button>
+          <button class="count-btn" data-count="5">5</button>
+          <button class="count-btn" data-count="6">6</button>
+          <button class="count-btn" data-count="7">7</button>
+          <button class="count-btn" data-count="8">8</button>
+        </div>
+      </div>
+
+      <div class="setup-section" id="player-names">
+        <h2>Player Names</h2>
+        <div id="name-inputs"></div>
+      </div>
+
+      <datalist id="player-name-suggestions"></datalist>
+
+      <button id="start-game-btn" class="start-btn">Start Game</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen">
+    <header class="game-header">
+      <div class="header-left">
+        <button id="back-btn" class="icon-btn" title="Back to Setup">←</button>
+        <h1 class="logo-sm">🎯 Dart Counter</h1>
+      </div>
+      <div class="header-center">
+        <span id="game-mode-label" class="mode-label">X01</span>
+        <span class="separator">|</span>
+        <span id="round-label">Round 1</span>
+      </div>
+      <div class="header-right">
+        <span id="finish-count"></span>
+        <button id="end-game-btn" class="btn-small">End Game</button>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <!-- SCORE DISPLAY -->
+      <section class="score-panel" id="score-panel">
+        <!-- Active Player -->
+        <div class="active-player-card" id="active-player-card">
+          <div class="player-label">THROWING</div>
+          <div class="player-name-large" id="active-player-name">Player 1</div>
+          <div class="player-score-large" id="active-player-score">301</div>
+          <div class="player-score-label" id="active-score-label">Remaining</div>
+
+          <div class="throws-row">
+            <div class="throw-slot" id="throw-0"><span class="throw-empty">-</span></div>
+            <div class="throw-slot" id="throw-1"><span class="throw-empty">-</span></div>
+            <div class="throw-slot" id="throw-2"><span class="throw-empty">-</span></div>
+          </div>
+
+          <div class="player-runs" id="player-runs">
+            <span id="active-runs">0</span>
+          </div>
+
+          <!-- Cricket marks (hidden for X01) -->
+          <div class="cricket-marks" id="cricket-marks-section" style="display:none;">
+            <div class="marks-row" id="marks-15"><span class="mark-num">15</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-16"><span class="mark-num">16</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-17"><span class="mark-num">17</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-18"><span class="mark-num">18</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-19"><span class="mark-num">19</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-20"><span class="mark-num">20</span><span class="mark-dots"></span></div>
+            <div class="marks-row" id="marks-bull"><span class="mark-num">B</span><span class="mark-dots"></span></div>
+          </div>
+        </div>
+
+        <!-- Player Queue -->
+        <div class="queue-section">
+          <h3 class="queue-title">QUEUE</h3>
+          <div id="queue-list" class="queue-list"></div>
+        </div>
+
+        <!-- Turn History -->
+        <div class="history-section">
+          <h3 class="history-title">TURN HISTORY</h3>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- INPUT PANEL -->
+      <section class="input-panel">
+        <div class="input-section">
+          <h3>Multiplier</h3>
+          <div class="multiplier-row">
+            <button class="mult-btn active" data-mult="1">Single</button>
+            <button class="mult-btn" data-mult="2">Double</button>
+            <button class="mult-btn" data-mult="3">Triple</button>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <h3>Number</h3>
+          <div class="number-grid">
+            <button class="num-btn" data-num="1">1</button>
+            <button class="num-btn" data-num="2">2</button>
+            <button class="num-btn" data-num="3">3</button>
+            <button class="num-btn" data-num="4">4</button>
+            <button class="num-btn" data-num="5">5</button>
+            <button class="num-btn" data-num="6">6</button>
+            <button class="num-btn" data-num="7">7</button>
+            <button class="num-btn" data-num="8">8</button>
+            <button class="num-btn" data-num="9">9</button>
+            <button class="num-btn" data-num="10">10</button>
+            <button class="num-btn" data-num="11">11</button>
+            <button class="num-btn" data-num="12">12</button>
+            <button class="num-btn" data-num="13">13</button>
+            <button class="num-btn" data-num="14">14</button>
+            <button class="num-btn" data-num="15">15</button>
+            <button class="num-btn" data-num="16">16</button>
+            <button class="num-btn" data-num="17">17</button>
+            <button class="num-btn" data-num="18">18</button>
+            <button class="num-btn" data-num="19">19</button>
+            <button class="num-btn" data-num="20">20</button>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <h3>Special</h3>
+          <div class="special-row">
+            <button class="special-btn bull" data-special="bull">Bull</button>
+            <button class="special-btn bulleye" data-special="bulleye">BE</button>
+            <button class="special-btn miss" data-special="0">MISS</button>
+          </div>
+        </div>
+
+        <div class="input-section input-actions">
+          <button id="undo-btn" class="undo-btn" disabled>↩ Undo</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- END GAME MODAL -->
+  <div id="end-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Game Over</h2>
+      <div id="results-list" class="results-list"></div>
+      <div id="history-summary" class="history-summary"></div>
+      <button id="replay-btn" class="start-btn">Play Again</button>
+      <button id="new-game-btn" class="secondary-btn">New Game</button>
+      <button id="back-to-setup-btn" class="secondary-btn">Back to Setup</button>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
