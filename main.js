@@ -12,7 +12,6 @@
   const STORAGE_KEY_GAME = 'dartcounter_game';
   const CRICKET_NUMBERS = [15, 16, 17, 18, 19, 20];
   const CRICKET_TARGET_MARKS = 3;
-  const X01_OPTIONS = [301, 501, 701];
   const MIN_PLAYERS = 2;
   const SCORES_PER_TURN = 3;
   const STORAGE_KEY_NAMES = 'dartcounter_player_names';
@@ -636,6 +635,7 @@
   function selectMultiplier(mult) {
     input.multiplier = mult;
     input.special = null;
+    updateMultiplierPreview();
 
     if (input.selected && input.number !== null) {
       // Number is currently selected — score immediately with new multiplier
@@ -695,6 +695,21 @@
     $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
 
     updateUndoButton();
+    updateMultiplierPreview();
+  }
+
+  function updateMultiplierPreview() {
+    // X01 only — in cricket the multiplier adds marks, not a score preview.
+    // A pending multiplier (>1) only exists right after Double/Triple is
+    // pressed, before a number, so this is the state the preview describes.
+    const show = state.mode === 'x01' && input.multiplier > 1;
+    $$('.num-btn').forEach(btn => {
+      if (show) {
+        btn.dataset.multPreview = String(parseInt(btn.dataset.num) * input.multiplier);
+      } else {
+        delete btn.dataset.multPreview;
+      }
+    });
   }
 
   function updateUndoButton() {

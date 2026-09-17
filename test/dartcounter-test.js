@@ -486,4 +486,28 @@ assert.ok(modalHidden(), 'game continues after every player closes one number');
 assert.ok(queueHtml().includes('class="queue-mark closed-all"'), 'queue mark turns blue once every player has closed the number');
 console.log('PASS 15: cricket queue mark blue when all players closed the number');
 
+// ---------- TEST 16: x01 multiplier preview shows the value each number would score ----------
+modeBtns[0].click(); // back to x01 (TEST 15 left cricket selected)
+startGame(['Ike', 'Jay']);
+multBtns[1].click(); // Double, pending before a number press
+assert.strictEqual(numBtns[19].dataset.multPreview, '40', 'Double: 20 previews 40');
+assert.strictEqual(numBtns[0].dataset.multPreview, '2', 'Double: 1 previews 2');
+assert.strictEqual(numBtns[18].dataset.multPreview, '38', 'Double: 19 previews 38');
+multBtns[2].click(); // Triple
+assert.strictEqual(numBtns[19].dataset.multPreview, '60', 'Triple: 20 previews 60');
+multBtns[0].click(); // Single
+assert.strictEqual(numBtns[19].dataset.multPreview, undefined, 'Single: no preview');
+// Scoring clears the preview (clearInput path)
+multBtns[2].click();
+numBtns[19].click(); // T20 with the pending triple, input resets after scoring
+assert.strictEqual(numBtns[19].dataset.multPreview, undefined, 'preview clears after a scored throw');
+console.log('PASS 16: x01 multiplier preview on number buttons');
+
+// ---------- TEST 17: cricket shows no multiplier preview ----------
+modeBtns[1].click();
+startGame(['Kim', 'Leo']);
+multBtns[1].click(); // Double
+assert.ok(numBtns.every(b => b.dataset.multPreview === undefined), 'cricket: no previews on any number button');
+console.log('PASS 17: cricket shows no multiplier preview');
+
 console.log('\nALL TESTS PASSED');

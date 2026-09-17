@@ -813,6 +813,17 @@ input {
   opacity: 1;
 }
 
+/* Multiplier preview — the value a pending Double/Triple would score,
+   smaller and to the right of the base number. Empty content renders
+   nothing, so no preview causes no layout shift. */
+.num-btn::after {
+  content: attr(data-mult-preview);
+  margin-left: 0.15rem;
+  font-size: 0.6em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 /* Multiplier Row */
 .multiplier-row {
   display: flex;
