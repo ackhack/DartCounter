@@ -473,4 +473,17 @@ assert.ok(rgHtml.includes('Gus wins'), 'shows the winner of the manually ended g
 assert.ok(rgHtml.includes('Hal'), 'shows the other player\'s final score');
 console.log('PASS 14: recent games list renders');
 
+// ---------- TEST 15: cricket — queue marks turn blue once every player has closed a number ----------
+getEl('stats-back-btn').click();
+modeBtns[1].click(); // cricket
+startGame(['Pam', 'Quin']);
+const queueHtml = () => getEl('queue-list').children.map(c => c.innerHTML).join('');
+throwTriple(20); throwTriple(20); throwTriple(20); // Pam T1: closes 20 (3 marks)
+assert.ok(queueHtml().includes('class="queue-mark closed"'), 'queue mark is green when only this player has closed the number');
+assert.ok(!queueHtml().includes('closed-all'), 'no blue queue mark while another player is still open');
+throwTriple(20); throwTriple(20); throwTriple(20); // Quin T1: closes 20 — all players now have 3 marks on 20
+assert.ok(modalHidden(), 'game continues after every player closes one number');
+assert.ok(queueHtml().includes('class="queue-mark closed-all"'), 'queue mark turns blue once every player has closed the number');
+console.log('PASS 15: cricket queue mark blue when all players closed the number');
+
 console.log('\nALL TESTS PASSED');

@@ -1049,7 +1049,7 @@
     // Clear cricket marks DOM before populating (prevents stale checkmarks from prev games)
     const cricketSection = $('#cricket-marks-section');
     if (state.mode === 'cricket') {
-      cricketSection.style.display = 'flex !important';
+      cricketSection.style.display = 'grid !important';
       CRICKET_NUMBERS.concat(['bull']).forEach(n => {
         const el = $(`#marks-${n}`);
         if (el) {
@@ -1192,7 +1192,10 @@
         marksPreview = '<div class="queue-marks-preview">';
         CRICKET_NUMBERS.concat(['bull']).forEach(n => {
           const m = p.marks[n] || 0;
-          marksPreview += `<span class="queue-mark ${m >= CRICKET_TARGET_MARKS ? 'closed' : (m > 0 ? 'filled' : '')}"></span>`;
+          // Blue when every player has closed this number, like the mark-dots
+          const allPlayersClosed = state.players.every(pl => (pl.marks[n] || 0) >= CRICKET_TARGET_MARKS);
+          const cls = allPlayersClosed ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (m > 0 ? 'filled' : ''));
+          marksPreview += `<span class="queue-mark ${cls}"></span>`;
         });
         marksPreview += '</div>';
       }

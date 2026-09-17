@@ -69,6 +69,7 @@ Notes:
 
 ### Coding conventions
 - 2-space indentation, single quotes in JS, arrow functions, `const` for all configuration values (see the CONSTANTS block: `CRICKET_NUMBERS`, `CRICKET_TARGET_MARKS`, `X01_OPTIONS`, `MIN_PLAYERS`, `SCORES_PER_TURN`, etc.). **Extract new magic numbers into named constants in this block rather than hardcoding them.**
+- **Fluid UI scaling:** the game UI scales with the viewport via a fluid root font — `html { font-size: clamp(16px, 14.5px + 0.5vw, 21px) }` in `styles.css`. Keep new sizes `rem`/`em`-based (or `clamp()`-based) rather than fixed `px` so they follow the scale. The mobile breakpoint (`≤768px`) carries layout overrides only (direction/borders), not font sizes; the cricket marks board stacks full-width there in 3 columns so all 7 targets stay visible on a phone.
 - Section banner comments (`// ====` …) organize both `main.js` and `styles.css`.
 - DOM helpers `$` / `$$` (querySelector / querySelectorAll) are defined once at the top.
 - Rendering is imperative DOM manipulation via innerHTML templates in `renderGame()` / `renderQueue()` / `renderHistory()`; history list does incremental DOM updates (prepend/rebuild/in-place) to avoid animation flicker.

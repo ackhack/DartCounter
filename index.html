@@ -96,30 +96,38 @@
       <section class="score-panel" id="score-panel">
         <!-- Active Player -->
         <div class="active-player-card" id="active-player-card">
-          <div class="player-label">THROWING</div>
-          <div class="player-name-large" id="active-player-name">Player 1</div>
-          <div class="player-score-large" id="active-player-score">301</div>
-          <div class="player-score-label" id="active-score-label">Remaining</div>
-
-          <div class="throws-row">
-            <div class="throw-slot" id="throw-0"><span class="throw-empty">-</span></div>
-            <div class="throw-slot" id="throw-1"><span class="throw-empty">-</span></div>
-            <div class="throw-slot" id="throw-2"><span class="throw-empty">-</span></div>
+          <div class="player-card-top">
+            <div class="player-label">THROWING</div>
+            <div class="player-name-large" id="active-player-name">Player 1</div>
           </div>
 
-          <div class="player-runs" id="player-runs">
-            <span id="active-runs">0</span>
-          </div>
+          <div class="player-card-body">
+            <!-- Cricket marks board (hidden for X01) — left half -->
+            <div class="cricket-marks" id="cricket-marks-section">
+              <div class="marks-row" id="marks-15"><span class="mark-num">15</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-16"><span class="mark-num">16</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-17"><span class="mark-num">17</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-18"><span class="mark-num">18</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-19"><span class="mark-num">19</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-20"><span class="mark-num">20</span><span class="mark-dots"></span></div>
+              <div class="marks-row" id="marks-bull"><span class="mark-num">B</span><span class="mark-dots"></span></div>
+            </div>
 
-          <!-- Cricket marks (hidden for X01) -->
-          <div class="cricket-marks" id="cricket-marks-section">
-            <div class="marks-row" id="marks-15"><span class="mark-num">15</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-16"><span class="mark-num">16</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-17"><span class="mark-num">17</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-18"><span class="mark-num">18</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-19"><span class="mark-num">19</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-20"><span class="mark-num">20</span><span class="mark-dots"></span></div>
-            <div class="marks-row" id="marks-bull"><span class="mark-num">B</span><span class="mark-dots"></span></div>
+            <!-- Score / throws info — right half -->
+            <div class="player-info">
+              <div class="player-score-large" id="active-player-score">301</div>
+              <div class="player-score-label" id="active-score-label">Remaining</div>
+
+              <div class="throws-row">
+                <div class="throw-slot" id="throw-0"><span class="throw-empty">-</span></div>
+                <div class="throw-slot" id="throw-1"><span class="throw-empty">-</span></div>
+                <div class="throw-slot" id="throw-2"><span class="throw-empty">-</span></div>
+              </div>
+
+              <div class="player-runs" id="player-runs">
+                <span id="active-runs">0</span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -33,7 +33,10 @@
 }
 
 html {
-  font-size: 16px;
+  /* Fluid base scale — the UI is rem-based, so sizing the root font from
+     the viewport width makes every screen scale with the display.
+     Clamped: phones keep ~16px, large desktops top out at 21px. */
+  font-size: clamp(16px, 14.5px + 0.5vw, 21px);
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
 }
@@ -173,8 +176,8 @@ input {
 }
 
 .player-number {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   background: var(--accent);
   border-radius: 50%;
   display: flex;
@@ -206,8 +209,8 @@ input {
 
 /* Remove Player */
 .remove-player-btn {
-  width: 26px;
-  height: 26px;
+  width: 1.6rem;
+  height: 1.6rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -284,7 +287,7 @@ input {
   padding: 0.4rem 0.75rem;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  min-height: 40px;
+  min-height: 2.5rem;
   flex-shrink: 0;
   gap: 0.5rem;
 }
@@ -303,8 +306,8 @@ input {
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   background: transparent;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -383,6 +386,29 @@ input {
   border: 1px solid var(--border);
 }
 
+/* Two-column body: left = cricket marks, right = score/throws */
+.player-card-top {
+  text-align: center;
+  margin-bottom: 0.6rem;
+}
+
+.player-card-body {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.player-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
 .player-label {
   font-size: 0.65rem;
   text-transform: uppercase;
@@ -420,13 +446,13 @@ input {
 .throws-row {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
-  margin: 0.6rem 0;
+  gap: 0.4rem;
+  margin: 0.15rem 0;
 }
 
 .throw-slot {
-  width: 55px;
-  height: 42px;
+  width: 3.4rem;
+  height: 2.6rem;
   background: var(--bg-input);
   border-radius: var(--radius-sm);
   display: flex;
@@ -466,12 +492,17 @@ input {
   font-weight: 700;
 }
 
-/* Cricket Marks */
+/* Cricket Marks — left half of the card body, 2-column board.
+   font-size drives the em-based mark numbers and dots, so the whole
+   board scales fluidly with the viewport. */
 .cricket-marks {
-  display: flex;
-  justify-content: center;
-  gap: 0.25rem;
-  margin-top: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: center;
+  gap: 0.5rem 0.6rem;
+  font-size: clamp(1.1rem, 1rem + 0.4vw, 1.5rem);
 }
 
 .marks-row {
@@ -483,8 +514,10 @@ input {
 
 .mark-num {
   font-size: 1em;
+  width: 1.5em;
   font-weight: 700;
   color: var(--text-muted);
+  justify-items: center;
 }
 
 .mark-num.closed {
@@ -497,12 +530,12 @@ input {
 
 .mark-dots {
   display: flex;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .mark-dot {
-  width: 1em;
-  height: 1em;
+  width: 1.15em;
+  height: 1.15em;
   border-radius: 50%;
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -570,8 +603,8 @@ input {
 }
 
 .queue-position {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   background: var(--bg-input);
   border-radius: 50%;
   display: flex;
@@ -589,7 +622,10 @@ input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 120px;
+  /* Fixed width so the cricket marks column starts at the same x on every
+     row, regardless of how long the name is (ellipsis handles overflow) */
+  width: 7.5rem;
+  flex-shrink: 0;
 }
 
 .queue-player-score {
@@ -604,11 +640,12 @@ input {
   text-decoration: line-through;
 }
 
-/* Cricket marks in queue */
+/* Cricket marks in queue — kept compact next to name/score */
 .queue-marks-preview {
   display: flex;
-  gap: 1.5px;
+  gap: 0.1rem;
   margin-left: 0.4rem;
+  font-size: 0.9rem;
 }
 
 .queue-mark {
@@ -683,13 +720,13 @@ input {
 .history-round {
   color: var(--text-muted);
   font-weight: 600;
-  min-width: 35px;
+  min-width: 2.2rem;
 }
 
 .history-player {
   color: var(--accent);
   font-weight: 600;
-  min-width: 70px;
+  min-width: 4.4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -721,7 +758,7 @@ input {
    INPUT PANEL - Right
    =========================== */
 .input-panel {
-  width: 36%;
+  width: clamp(280px, 33vw, 440px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -912,8 +949,8 @@ input {
 }
 
 .result-rank {
-  width: 26px;
-  height: 26px;
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1165,7 +1202,9 @@ input {
 
 /* ===========================
    MOBILE LAYOUT
-   =========================== */
+   ===========================
+   Font/button sizes now scale via the fluid root font + clamp() tokens,
+   so this block only carries layout (direction/border) overrides. */
 @media (max-width: 768px) {
   .game-layout {
     flex-direction: column;
@@ -1180,22 +1219,39 @@ input {
     padding: 0.75rem;
   }
 
-  .player-name-large {
-    font-size: 1.2rem;
+  .player-card-top {
+    margin-bottom: 0.45rem;
   }
 
-  .player-score-large {
-    font-size: 2.2rem;
+  /* Stack the card body: score/throws first, then the cricket marks board
+     full-width below — side-by-side left the mark dots too small to read */
+  .player-card-body {
+    flex-direction: column-reverse;
+    gap: 0.6rem;
   }
 
-  .throw-slot {
-    width: 48px;
-    height: 38px;
-    font-size: 0.9rem;
+  /* 3-column marks board — 7 targets in 3 rows keeps the card short enough
+     that the whole board fits above the queue on a phone */
+  .cricket-marks {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Compact input rows so the score panel keeps most of the screen */
+  .num-btn {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .special-btn {
+    padding: 0.45rem 0.2rem;
   }
 
   .queue-section {
     padding: 0.5rem;
+  }
+
+  /* Narrower name column on phones so name + marks + score still fit */
+  .queue-player-name {
+    width: 5rem;
   }
 
   .history-section {
@@ -1213,27 +1269,12 @@ input {
     flex-shrink: 0;
   }
 
-  .number-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.3rem;
-  }
-
-  .num-btn {
-    padding: 0.55rem 0.25rem;
-    font-size: 1rem;
-  }
-
-  .special-btn {
-    font-size: 0.75rem;
-    padding: 0.5rem 0.2rem;
-  }
-
   .header-center {
     display: none;
   }
 
   .game-header {
-    min-height: 38px;
+    min-height: 2.4rem;
     padding: 0.3rem 0.5rem;
   }
 }
