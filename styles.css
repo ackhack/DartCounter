@@ -204,6 +204,51 @@ input {
   color: var(--text-muted);
 }
 
+/* Remove Player */
+.remove-player-btn {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+
+.remove-player-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+}
+
+.remove-player-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Add Player */
+.add-player-btn {
+  margin-top: 0.6rem;
+  width: 100%;
+  padding: 0.55rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.add-player-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
 /* Start Button */
 .start-btn {
   width: 100%;

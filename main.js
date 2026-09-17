@@ -13,7 +13,6 @@
   const CRICKET_NUMBERS = [15, 16, 17, 18, 19, 20];
   const CRICKET_TARGET_MARKS = 3;
   const X01_OPTIONS = [301, 501, 701];
-  const MAX_PLAYERS = 8;
   const MIN_PLAYERS = 2;
   const SCORES_PER_TURN = 3;
   const STORAGE_KEY_NAMES = 'dartcounter_player_names';
@@ -308,16 +307,16 @@
       });
     });
 
-    // Player count
+    // Player count (quick shortcuts — the real roster is whatever rows exist)
     $$('.count-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        $$('.count-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const count = parseInt(btn.dataset.count);
-        renderNameInputs(count);
+        renderNameInputs(parseInt(btn.dataset.count));
         updateNameInputs();
       });
     });
+
+    // Add player (no upper limit)
+    $('#add-player-btn').addEventListener('click', addPlayerRow);
 
     // Start game
     $('#start-game-btn').addEventListener('click', startGame);
@@ -372,18 +371,61 @@
     });
   }
 
+  function createPlayerRow(i) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'name-input-wrapper';
+    wrapper.innerHTML = `
+      <span class="player-number">${i + 1}</span>
+      <input type="text" class="name-input" data-index="${i}" placeholder="Player ${i + 1}" maxlength="12" list="player-name-suggestions">
+      <button class="remove-player-btn" title="Remove player">✕</button>
+    `;
+    wrapper.querySelector('.remove-player-btn').addEventListener('click', () => removePlayerRow(wrapper));
+    return wrapper;
+  }
+
   function renderNameInputs(count) {
     const container = $('#name-inputs');
     container.innerHTML = '';
     for (let i = 0; i < count; i++) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'name-input-wrapper';
-      wrapper.innerHTML = `
-        <span class="player-number">${i + 1}</span>
-        <input type="text" class="name-input" data-index="${i}" placeholder="Player ${i + 1}" maxlength="12" list="player-name-suggestions">
-      `;
-      container.appendChild(wrapper);
+      container.appendChild(createPlayerRow(i));
     }
+    syncCountButtons(count);
+    updateRemoveButtons();
+  }
+
+  function addPlayerRow() {
+    const container = $('#name-inputs');
+    container.appendChild(createPlayerRow(container.children.length));
+    syncCountButtons(container.children.length);
+    updateRemoveButtons();
+    container.children[container.children.length - 1].querySelector('.name-input').focus();
+  }
+
+  function removePlayerRow(wrapper) {
+    const container = $('#name-inputs');
+    if (container.children.length <= MIN_PLAYERS) return;
+    container.removeChild(wrapper);
+    $$('.name-input-wrapper').forEach((row, i) => {
+      row.querySelector('.player-number').textContent = i + 1;
+      const input = row.querySelector('.name-input');
+      input.dataset.index = String(i);
+      input.placeholder = `Player ${i + 1}`;
+    });
+    syncCountButtons(container.children.length);
+    updateRemoveButtons();
+  }
+
+  function syncCountButtons(count) {
+    $$('.count-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.count) === count);
+    });
+  }
+
+  function updateRemoveButtons() {
+    const removable = $$('.name-input').length > MIN_PLAYERS;
+    $$('.remove-player-btn').forEach(btn => {
+      btn.disabled = !removable;
+    });
   }
 
   function updateNameInputs() {
@@ -453,12 +495,17 @@
     state.gameStarted = true;
     state.gameOver = false;
 
+    // Reset input — a game-winning dart leaves its number selected, and a
+    // stale selection would be instant-scored by the first multiplier click
+    clearInput();
+
     showScreen('game');
     highlightCricketTargets();
     renderGame();
   }
 
   function backToSetup() {
+    $('#end-modal').classList.add('hidden');
     state.gameStarted = false;
     state.gameOver = false;
     clearGameState();
@@ -518,6 +565,9 @@
     state.gameStarted = true;
     state.gameOver = false;
     state._currentPlayerTurn = null;
+
+    // Reset input — a game-winning dart leaves its number selected
+    clearInput();
 
     showScreen('game');
     highlightCricketTargets();
@@ -906,6 +956,17 @@
     // If player finished mid-turn, end the turn immediately
     if (cricketResult?.finished || (state.mode === 'x01' && player.finished)) {
       state.throwCount = SCORES_PER_TURN;
+    }
+
+    // X01 bust ends the turn — remaining darts count as misses.
+    // Auto-misses count as darts (player.turns) so undoing them stays balanced.
+    if (bust) {
+      while (state.throwCount < SCORES_PER_TURN) {
+        state._currentPlayerTurn.throws.push('MISS');
+        state._currentPlayerTurn.values.push(0);
+        player.turns++;
+        state.throwCount++;
+      }
     }
 
     // Check if turn is complete (3 scores)

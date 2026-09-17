@@ -49,8 +49,17 @@ function makeEl(id) {
     addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     click() { (this.listeners['click'] || []).forEach(fn => fn()); },
     appendChild(child) { this.children.push(child); return child; },
+    removeChild(child) { const i = this.children.indexOf(child); if (i >= 0) this.children.splice(i, 1); return child; },
     prepend(child) { this.children.unshift(child); return child; },
-    querySelector() { return makeEl('sub-' + (++createdCount)); },
+    focus() {},
+    // Cache per selector so repeated querySelector calls return the same
+    // sub-element (as a real DOM would) — lets the harness click the
+    // per-row remove buttons the app attached listeners to.
+    querySelector(sel) {
+      this._subEls = this._subEls || {};
+      if (!this._subEls[sel]) this._subEls[sel] = makeEl(this.id + ':' + sel);
+      return this._subEls[sel];
+    },
     querySelectorAll() { return []; },
     set innerHTML(v) { this._innerHTML = String(v); if (v === '') this.children = []; },
     get innerHTML() { return this._innerHTML; },
@@ -71,7 +80,8 @@ const countBtns = ['2', '3', '4', '5', '6', '7', '8'].map(c => { const b = makeE
 const numBtns = Array.from({ length: 20 }, (_, i) => { const b = makeEl('num-' + (i + 1)); b.dataset.num = String(i + 1); return b; });
 const multBtns = ['1', '2', '3'].map(m => { const b = makeEl('mult-' + m); b.dataset.mult = m; return b; });
 const specialBtns = [['bull', 'bull'], ['bulleye', 'be'], ['0', 'miss']].map(([d, id]) => { const b = makeEl('special-' + id); b.dataset.special = d; return b; });
-const nameInputs = [0, 1, 2].map(i => makeEl('name-input-' + i));
+const nameInputs = Array.from({ length: 10 }, (_, i) => makeEl('name-input-' + i));
+const nameInputPool = [...nameInputs];
 
 // ---------- document/window/navigator ----------
 const document = {
@@ -90,6 +100,9 @@ const document = {
       case '.name-input':
         // only inputs for the currently rendered wrappers count
         return nameInputs.slice(0, getEl('name-inputs').children.length);
+      case '.name-input-wrapper': return getEl('name-inputs').children;
+      case '.remove-player-btn':
+        return getEl('name-inputs').children.map(w => w.querySelector('.remove-player-btn'));
       default: return [];
     }
   },
@@ -101,6 +114,11 @@ const navigator = {};
 // ---------- load the app ----------
 const src = fs.readFileSync(path.join(__dirname, '../../main.js'), 'utf8');
 function loadApp() {
+  // A real page navigation replaces ALL listeners — clear them so a reload
+  // doesn't accumulate duplicate handlers on the stub elements.
+  const reset = el => { el.listeners = {}; };
+  Object.values(els).forEach(reset);
+  [...modeBtns, ...scoreBtns, ...countBtns, ...numBtns, ...multBtns, ...specialBtns, ...nameInputPool].forEach(reset);
   new Function('document', 'window', 'navigator', 'localStorage', src)(document, window, navigator, localStorage);
 }
 loadApp();
@@ -110,9 +128,24 @@ const modalHidden = () => getEl('end-modal').classList.contains('hidden');
 
 function startGame(names) {
   getEl('name-inputs').children.length = 0; // reset rendered wrappers
-  countBtns[String(names.length) - 2].click(); // index 0 => 2 players
+  nameInputs.length = 0;
+  nameInputs.push(...nameInputPool); // undo any splices from removeRow()
+  if (names.length <= 8) {
+    countBtns[names.length - 2].click(); // index 0 => 2 players
+  } else {
+    countBtns[6].click(); // 8 via shortcut, the rest via the plus button
+    for (let i = 8; i < names.length; i++) getEl('add-player-btn').click();
+  }
   names.forEach((n, i) => { nameInputs[i].value = n; });
   getEl('start-game-btn').click();
+}
+
+// Click a row's ✕ button and splice the stub input pool so the harness'
+// .name-input slice stays faithful to the live rows.
+function removeRow(idx) {
+  const wrappers = getEl('name-inputs').children;
+  wrappers[idx].querySelector('.remove-player-btn').click();
+  nameInputs.splice(idx, 1);
 }
 
 function throwSingle(n) { numBtns[n - 1].click(); }
@@ -264,5 +297,105 @@ assert.deepStrictEqual(activeScreens(), ['stats']);
 startGame(['Alice', 'Bob']);
 assert.deepStrictEqual(activeScreens(), ['game'], 'starting a game must not leave stats screen active');
 console.log('PASS 6: start game after stats shows only the game screen');
+
+// ---------- TEST 7: X01 bust auto-fills misses and advances to next player ----------
+// Fresh names so stats are not cumulative with earlier tests
+startGame(['Carl', 'Dan']);
+// Turns alternate: Carl T1, Dan T1, Carl T2, Dan T2
+throwTriple(20); throwTriple(20); throwTriple(20); // Carl T1: 301→121
+throwTriple(20); throwTriple(20); throwTriple(20); // Dan T1: 301→121
+throwTriple(20); throwSingle(2); specialBtns[2].click(); // Carl T2: 121→61→59→59
+throwTriple(20); throwSingle(2); specialBtns[2].click(); // Dan T2: 121→61→59→59
+// Carl T3: T20 from 59 -> BUST -> turn must auto-complete with 2 misses, Dan active
+throwTriple(20);
+assert.strictEqual(getEl('active-player-name').textContent, 'Dan', 'bust should end the turn and pass to the next player');
+assert.strictEqual(Number(getEl('active-player-score').textContent), 59, 'bust reverts Carl; Dan is at 59');
+// Dan T3: 59 -> 20, 20, 19 -> finished -> game over
+throwSingle(20); throwSingle(20); throwSingle(19);
+assert.ok(!modalHidden(), 'game over after Dan checks out');
+
+stats = readStats();
+const carl = stats.players['carl'].modes.x01;
+const dan = stats.players['dan'].modes.x01;
+assert.strictEqual(carl.totalTurns, 3, 'Carl had 3 turns incl. the busted one');
+assert.strictEqual(carl.totalRuns, 242, 'bust value and auto-misses score nothing');
+assert.strictEqual(carl.checkoutAttempts, 1, 'busted turn started from <=60 — a missed checkout');
+assert.strictEqual(carl.checkouts, 0);
+assert.strictEqual(dan.wins, 1);
+assert.strictEqual(dan.checkouts, 1);
+console.log('PASS 7: bust ends turn, auto-misses, next player');
+
+// ---------- TEST 8: undoing a busted turn, then re-throwing, keeps dart counts balanced ----------
+startGame(['Eve', 'Frank']);
+throwTriple(20); throwTriple(20); throwTriple(20); // Eve T1: 301→121
+throwTriple(20); throwTriple(20); throwTriple(20); // Frank T1: 301→121
+throwTriple(20); throwSingle(2); specialBtns[2].click(); // Eve T2: →59
+throwTriple(20); throwSingle(2); specialBtns[2].click(); // Frank T2: →59
+throwTriple(20); // Eve T3: T20 from 59 → BUST + 2 auto-misses
+assert.strictEqual(getEl('active-player-name').textContent, 'Frank', 'bust ends the turn and passes to the next player');
+// Undo all 3 darts of the busted turn: 2 auto-misses + the bust itself
+getEl('undo-btn').click();
+getEl('undo-btn').click();
+getEl('undo-btn').click();
+assert.strictEqual(getEl('active-player-name').textContent, 'Eve', 'full undo restores Eve mid-flow');
+assert.strictEqual(Number(getEl('active-player-score').textContent), 59, 'score unchanged after full undo');
+// Eve re-throws T3: 20, 20, 19 → finished → game over
+throwSingle(20); throwSingle(20); throwSingle(19);
+assert.ok(!modalHidden(), 'game over after Eve checks out on the re-thrown turn');
+
+stats = readStats();
+const eve = stats.players['eve'].modes.x01;
+const frank = stats.players['frank'].modes.x01;
+assert.strictEqual(eve.totalTurns, 3, 'Eve: 3 completed turns');
+assert.strictEqual(eve.totalDarts, 9, 'Eve: 3+3+3 darts — undo/re-throw must not leak or drop darts');
+assert.strictEqual(eve.totalRuns, 301);
+assert.strictEqual(eve.checkouts, 1);
+assert.strictEqual(eve.wins, 1);
+assert.strictEqual(frank.totalDarts, 6, 'Frank: 2 turns × 3 darts');
+assert.strictEqual(frank.totalRuns, 242);
+console.log('PASS 8: bust undo + re-throw keeps dart counts balanced');
+
+// ---------- TEST 9: add/remove players in setup — no upper limit, min 2 ----------
+getEl('back-to-setup-btn').click();
+const rowCount = () => getEl('name-inputs').children.length;
+const rowValues = () => nameInputs.slice(0, rowCount()).map(i => i.value);
+const rowNumbers = () => getEl('name-inputs').children.map(w => String(w.querySelector('.player-number').textContent));
+
+assert.strictEqual(rowCount(), 2, 'setup shows the 2 rows from the previous setup');
+for (let i = 0; i < 3; i++) getEl('add-player-btn').click();
+assert.strictEqual(rowCount(), 5, 'plus button adds rows');
+nameInputs.slice(0, 5).forEach((inp, i) => { inp.value = ['Amy', 'Ben', 'Cal', 'Dot', 'Eli'][i]; });
+removeRow(1); // remove Ben
+assert.strictEqual(rowCount(), 4, 'x button removes the row');
+assert.deepStrictEqual(rowValues(), ['Amy', 'Cal', 'Dot', 'Eli'], 'other names preserved after removal');
+assert.deepStrictEqual(rowNumbers(), ['1', '2', '3', '4'], 'rows renumbered after removal');
+// grow past the old limit of 8
+for (let i = 0; i < 5; i++) getEl('add-player-btn').click();
+assert.strictEqual(rowCount(), 9, 'no upper limit — 9 rows allowed');
+assert.ok(countBtns.every(b => !b.classList.contains('active')), 'no count shortcut active beyond 8');
+// count shortcut re-renders; then shrink to the minimum of 2
+countBtns[2].click(); // 4 rows
+assert.strictEqual(rowCount(), 4);
+removeRow(3);
+removeRow(2);
+assert.strictEqual(rowCount(), 2, 'can remove down to 2 players');
+assert.ok(document.querySelectorAll('.remove-player-btn').every(b => b.disabled), 'x buttons disabled at the minimum');
+removeRow(0);
+assert.strictEqual(rowCount(), 2, 'cannot remove below 2 players');
+console.log('PASS 9: add/remove players (unlimited, min 2, names preserved, renumbered)');
+
+// ---------- TEST 10: full game with 9 players (beyond the old 8-player cap) ----------
+startGame(['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']);
+playToCompletion();
+stats = readStats();
+let newWins = 0;
+for (let i = 1; i <= 9; i++) {
+  const p = stats.players['n' + i];
+  assert.ok(p, `player n${i} has stats`);
+  assert.strictEqual(p.modes.x01.gamesPlayed, 1, `n${i} played 1 game`);
+  newWins += p.modes.x01.wins;
+}
+assert.strictEqual(newWins, 1, 'exactly one of the 9 players won');
+console.log('PASS 10: full X01 game with 9 players');
 
 console.log('\nALL TESTS PASSED');

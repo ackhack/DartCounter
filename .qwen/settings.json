@@ -7,7 +7,9 @@
       "Bash(python3 *)",
       "Bash(git diff *)",
       "Bash(echo *)",
-      "Bash(cd *)"
+      "Bash(cd *)",
+      "Bash(grep *)",
+      "Bash(tail *)"
     ]
   },
   "$version": 4
