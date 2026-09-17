@@ -238,7 +238,7 @@
     for (const h of state.history) {
       if (h.playerId !== player.id) continue;
       for (const t of h.throws) {
-        if (t === 'Bull' || t === 'BE') count++;
+        if (t === 'Bull' || t === 'BE' || t === 'BullsEye') count++;
       }
     }
     return count;
@@ -844,7 +844,7 @@
     const trimmed = label.replace(' (BUST)', '');
     if (trimmed === 'Bull') {
       marks['bull'] = 1;
-    } else if (trimmed === 'BE') {
+    } else if (trimmed === 'BE' || trimmed === 'BullsEye') {
       marks['bull'] = 2;
     } else if (trimmed.startsWith('D')) {
       const num = parseInt(trimmed.substring(1));
