@@ -56,6 +56,8 @@ function makeEl(id) {
     removeChild(child) { const i = this.children.indexOf(child); if (i >= 0) this.children.splice(i, 1); return child; },
     prepend(child) { this.children.unshift(child); return child; },
     focus() {},
+    setAttribute() {},
+    getAttribute() { return null; },
     // Cache per selector so repeated querySelector calls return the same
     // sub-element (as a real DOM would) — lets the harness click the
     // per-row remove buttons the app attached listeners to.
@@ -115,8 +117,14 @@ const document = {
 const window = { addEventListener() {} };
 const navigator = {};
 
+// ---------- confirm/alert stubs ----------
+// Bare confirm()/alert() calls in the app's IIFE resolve via Node's global
+// scope; default to "user confirms" and flip per-test for cancel paths.
+global.confirm = () => true;
+global.alert = () => {};
+
 // ---------- load the app ----------
-const src = fs.readFileSync(path.join(__dirname, '../../main.js'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, '../main.js'), 'utf8');
 function loadApp() {
   // A real page navigation replaces ALL listeners — clear them so a reload
   // doesn't accumulate duplicate handlers on the stub elements.
@@ -235,10 +243,11 @@ assert.strictEqual(winner.modes.x01.gamesPlayed, 1);
 assert.strictEqual(loser.modes.x01.gamesPlayed, 1);
 assert.strictEqual(winner.modes.x01.wins, 1);
 assert.strictEqual(loser.modes.x01.wins, 0);
-assert.strictEqual(winner.modes.x01.checkouts, 1, 'winner finished from a <=60 position');
-assert.strictEqual(winner.modes.x01.checkoutAttempts, 1);
-assert.strictEqual(winner.modes.x01.checkoutPct, 100);
+assert.strictEqual(winner.modes.x01.checkouts, 1, 'winner finished on a checkout turn');
+assert.strictEqual(winner.modes.x01.checkoutAttempts, 2, 'turns started from 121 and 60 were both opportunities');
+assert.strictEqual(winner.modes.x01.checkoutPct, 50);
 assert.strictEqual(loser.modes.x01.checkouts, 0, 'loser never finished');
+assert.strictEqual(loser.modes.x01.checkoutAttempts, 1, 'loser had one opportunity (turn from 121)');
 assert.strictEqual(winner.modes.x01.bestScore, 0, 'winner finished, bestScore 0');
 assert.ok(loser.modes.x01.bestScore > 0, 'loser did not finish');
 // Best Turn must be a single-turn score: strategy turns are 180 (3xT20),
@@ -330,13 +339,14 @@ const carl = stats.players['carl'].modes.x01;
 const dan = stats.players['dan'].modes.x01;
 assert.strictEqual(carl.totalTurns, 3, 'Carl had 3 turns incl. the busted one');
 assert.strictEqual(carl.totalRuns, 242, 'bust value and auto-misses score nothing');
-assert.strictEqual(carl.checkoutAttempts, 1, 'busted turn started from <=60 — a missed checkout');
+assert.strictEqual(carl.checkoutAttempts, 2, 'turns from 121 and 59 were opportunities; the 59 turn busted');
 assert.strictEqual(carl.checkouts, 0);
 // Busted turn totals 0 in history; both players' best turn is the opening 3xT20 turn
 assert.strictEqual(carl.bestTurn, 180, 'bust turn scores 0, best turn is the 180 turn');
 assert.strictEqual(dan.bestTurn, 180);
 assert.strictEqual(dan.wins, 1);
 assert.strictEqual(dan.checkouts, 1);
+assert.strictEqual(dan.checkoutAttempts, 2, 'Dan had opportunities from 121 and the finishing 59');
 console.log('PASS 7: bust ends turn, auto-misses, next player');
 
 // ---------- TEST 8: undoing a busted turn, then re-throwing, keeps dart counts balanced ----------
@@ -411,5 +421,56 @@ for (let i = 1; i <= 9; i++) {
 }
 assert.strictEqual(newWins, 1, 'exactly one of the 9 players won');
 console.log('PASS 10: full X01 game with 9 players');
+
+// ---------- TEST 11: End button requires confirmation ----------
+getEl('back-to-setup-btn').click(); // close the end modal from TEST 10
+startGame(['Gus', 'Hal']);
+throwTriple(20); // one dart in, game mid-flight
+global.confirm = () => false;
+getEl('end-game-btn').click();
+assert.ok(modalHidden(), 'confirm=false must not end the game');
+global.confirm = () => true;
+getEl('end-game-btn').click();
+assert.ok(!modalHidden(), 'confirm=true finalizes the game');
+stats = readStats();
+assert.strictEqual(stats.players['gus'].modes.x01.gamesPlayed, 1, 'manual end records stats');
+assert.strictEqual(stats.players['hal'].modes.x01.gamesPlayed, 1, 'manual end records stats');
+console.log('PASS 11: End button requires confirmation');
+
+// ---------- TEST 12: duplicate player names are rejected ----------
+getEl('back-to-setup-btn').click();
+const alerts = [];
+global.alert = msg => { alerts.push(msg); };
+startGame(['Ivy', 'ivy']);
+assert.strictEqual(alerts.length, 1, 'case-insensitive duplicate triggers an alert');
+assert.ok(!getEl('game-screen').classList.contains('active'), 'game does not start on duplicate names');
+assert.deepStrictEqual(activeScreens(), ['setup']);
+global.alert = () => {};
+console.log('PASS 12: duplicate names rejected');
+
+// ---------- TEST 13: per-player stats reset ----------
+getEl('view-stats-btn').click();
+const gusCard = getEl('stats-list').children.find(c => c.innerHTML.includes('Gus'));
+assert.ok(gusCard, 'stats screen renders Gus');
+const resetBtn = gusCard.querySelector('.stats-reset-btn');
+
+global.confirm = () => false;
+resetBtn.click();
+assert.ok(JSON.parse(store['dartcounter_stats']).players['gus'], 'confirm=false keeps stats');
+
+global.confirm = () => true;
+resetBtn.click();
+assert.ok(!JSON.parse(store['dartcounter_stats']).players['gus'], 'confirm=true removes stats');
+assert.ok(!getEl('stats-list').children.some(c => c.innerHTML.includes('Gus')), 'list re-renders without Gus');
+console.log('PASS 13: per-player stats reset');
+
+// ---------- TEST 14: recent games list renders on the stats screen ----------
+const rgEl = getEl('recent-games');
+assert.ok(!rgEl.classList.contains('hidden'), 'recent games visible after finished games');
+const rgHtml = rgEl.innerHTML;
+assert.ok(rgHtml.includes('X01 301'), 'shows mode + start score');
+assert.ok(rgHtml.includes('Gus wins'), 'shows the winner of the manually ended game');
+assert.ok(rgHtml.includes('Hal'), 'shows the other player\'s final score');
+console.log('PASS 14: recent games list renders');
 
 console.log('\nALL TESTS PASSED');

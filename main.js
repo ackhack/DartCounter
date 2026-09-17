@@ -16,8 +16,7 @@
   const MIN_PLAYERS = 2;
   const SCORES_PER_TURN = 3;
   const STORAGE_KEY_NAMES = 'dartcounter_player_names';
-  const MAX_TURN_VALUE = 60; // remaining score at or below which a turn counts as a checkout opportunity
-  const MAX_X01_TURN = 180;  // 3×T20 — highest possible single X01 turn score
+  const MAX_X01_TURN = 180;  // 3×T20 — highest possible single X01 turn score; a turn started from this or less was a checkout opportunity
 
   // ===========================
   // STATE
@@ -25,17 +24,13 @@
   let state = {
     mode: 'x01',           // 'x01' or 'cricket'
     x01Start: 301,
-    players: [],           // [{id, name, score, turns, runs, marks, finished, position}]
+    players: [],           // [{id, name, score, turns, runs, marks, finished}]
     currentPlayerIndex: 0,
     throwCount: 0,         // 0-2 within current turn
-    currentPlayerScore: 0, // score for current turn
     round: 1,
     history: [],           // [{round, playerId, name, throws, total}]
-    scoresEntered: 0,      // total scores entered across all players
     gameStarted: false,
     gameOver: false,
-    lastPlayerScore: 0,    // score of last completed turn for display
-    lastPlayerName: '',    // name of last player who completed a turn
     _currentPlayerTurn: null  // transient: tracks in-progress 3-dart turn
   };
 
@@ -43,8 +38,7 @@
     number: null,
     multiplier: 1,
     special: null,
-    selected: false,
-    lastNumber: null  // preserve for Double/Triple after submit
+    selected: false
   };
 
   let stats = loadStats();
@@ -220,8 +214,9 @@
   }
 
   // Derived from history so undo can't skew the counts.
-  // A turn started from score <= MAX_TURN_VALUE was a checkout opportunity;
-  // the finishing turn is the player's last history entry.
+  // A turn started from score <= MAX_X01_TURN (3 darts can always finish it)
+  // was a checkout opportunity; the finishing turn is the player's last
+  // history entry.
   function computeX01CheckoutStats(player) {
     const entries = state.history.filter(h => h.playerId === player.id);
     if (entries.length === 0) return { attempts: 0, made: 0 };
@@ -230,7 +225,7 @@
     let made = 0;
     for (let i = entries.length - 1; i >= 0; i--) {
       const startScore = afterScore + entries[i].total;
-      if (startScore <= MAX_TURN_VALUE) {
+      if (startScore <= MAX_X01_TURN) {
         attempts++;
         if (i === entries.length - 1 && player.finished) made++;
       }
@@ -342,7 +337,11 @@
 
     // End game buttons
     $('#back-btn').addEventListener('click', backToSetup);
-    $('#end-game-btn').addEventListener('click', endGame);
+    // Manual end is destructive (finalizes stats) — confirm. The automatic
+    // game-over path in submitScore is the real finish and stays unguarded.
+    $('#end-game-btn').addEventListener('click', () => {
+      if (confirm('End this game now? Current scores will be finalized and saved to stats.')) endGame();
+    });
     $('#replay-btn').addEventListener('click', replayGame);
     $('#new-game-btn').addEventListener('click', newGame);
     $('#back-to-setup-btn').addEventListener('click', backToSetup);
@@ -475,16 +474,27 @@
       }
     }
 
+    // Reject duplicate names (case-insensitive) — name-keyed aggregates
+    // (stats entries, the modal's per-name best-turn map) would collide.
+    const seen = new Set();
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        alert(`Duplicate player name: "${name}" — every player needs a unique name.`);
+        return;
+      }
+      seen.add(key);
+    }
+
     // Initialize players
     state.players = names.map((name, i) => ({
       id: i,
       name,
-      score: state.mode === 'x01' ? state.x01Start : state.x01Start,
+      score: state.x01Start,
       turns: 0,
       runs: 0,
       marks: {},
-      finished: false,
-      position: i + 1
+      finished: false
     }));
 
     // Initialize cricket marks
@@ -498,12 +508,8 @@
 
     state.currentPlayerIndex = 0;
     state.throwCount = 0;
-    state.currentPlayerScore = 0;
-    state.lastPlayerScore = 0;
-    state.lastPlayerName = '';
     state.round = 1;
     state.history = [];
-    state.scoresEntered = 0;
     state.gameStarted = true;
     state.gameOver = false;
 
@@ -549,12 +555,11 @@
     state.players = sortedNames.map((name, i) => ({
       id: i,
       name,
-      score: mode === 'x01' ? x01Start : x01Start,
+      score: x01Start,
       turns: 0,
       runs: 0,
       marks: {},
-      finished: false,
-      position: i + 1
+      finished: false
     }));
 
     // Initialize cricket marks
@@ -568,12 +573,8 @@
 
     state.currentPlayerIndex = 0;
     state.throwCount = 0;
-    state.currentPlayerScore = 0;
-    state.lastPlayerScore = 0;
-    state.lastPlayerName = '';
     state.round = 1;
     state.history = [];
-    state.scoresEntered = 0;
     state.gameStarted = true;
     state.gameOver = false;
     state._currentPlayerTurn = null;
@@ -626,7 +627,6 @@
     // Reset multiplier for next throw
     input.multiplier = 1;
 
-    updateInputPreview();
     updateUndoButton();
 
     // Instant scoring — use saved multiplier before reset
@@ -647,7 +647,6 @@
       });
       $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
 
-      updateInputPreview();
       updateUndoButton();
 
       // Instant scoring
@@ -660,7 +659,6 @@
       });
       $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
 
-      updateInputPreview();
       updateUndoButton();
       // No instant score — wait for number
     }
@@ -678,7 +676,6 @@
       btn.classList.toggle('selected', btn.dataset.special === type);
     });
 
-    updateInputPreview();
     updateUndoButton();
 
     // Instant scoring
@@ -697,7 +694,6 @@
     });
     $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
 
-    updateInputPreview();
     updateUndoButton();
   }
 
@@ -705,36 +701,6 @@
     const undoBtn = $('#undo-btn');
     // Enable undo if there's an incomplete turn or completed history to undo
     undoBtn.disabled = !state._currentPlayerTurn && state.history.length === 0 || state.gameOver;
-  }
-
-  function updateInputPreview() {
-    const preview = $('#input-preview');
-    if (!preview) return;  // preview panel removed
-    let html = '';
-
-    if (input.special) {
-      if (input.special === '0') {
-        html = `<span class="preview-text">MISS</span>`;
-      } else if (input.special === 'bull') {
-        html = `<span class="preview-value">25</span><span class="preview-label">Bull</span>`;
-      } else if (input.special === 'bulleye') {
-        html = `<span class="preview-value">50</span><span class="preview-label">Bullseye</span>`;
-      }
-    } else if (input.selected && input.number !== null) {
-      const baseValue = input.number;
-      const totalValue = input.number * input.multiplier;
-
-      if (input.multiplier === 1) {
-        html = `<span class="preview-value">${baseValue}</span><span class="preview-label">${input.number}</span>`;
-      } else {
-        const multLabel = input.multiplier === 2 ? 'D' : 'T';
-        html = `<span class="preview-value">${baseValue}</span><span class="preview-mult-value">${totalValue}</span><span class="preview-label">${multLabel}${input.number}</span>`;
-      }
-    } else {
-      html = `<span class="preview-text">Select a number</span>`;
-    }
-
-    preview.innerHTML = html;
   }
 
   // ===========================
@@ -755,9 +721,6 @@
 
       revertPlayerStats(player, lastValue, lastLabel, scored);
       state.throwCount = Math.max(0, state.throwCount - 1);
-      // Recalculate turn total from remaining throws
-      state.currentPlayerScore = turn.values.reduce((a, b) => a + b, 0);
-      state.lastPlayerScore = 0;
 
       // Clean up empty turn to prevent broken state on repeated undo
       if (turn.throws.length === 0) {
@@ -797,7 +760,6 @@
     if (!player) return;
 
     revertPlayerStats(player, lastValue, lastLabel, scored);
-    state.lastPlayerScore = 0;
 
     // If the entry is now empty, remove it entirely
     if (lastEntry.throws.length === 0) {
@@ -823,7 +785,6 @@
       );
       state.currentPlayerIndex = undonePlayerIndex;
       state.throwCount = state._currentPlayerTurn.throws.length;
-      state.lastPlayerScore = state._currentPlayerTurn.total;
     }
 
     clearInput();
@@ -919,9 +880,6 @@
       if (state.mode === 'cricket' && CRICKET_NUMBERS.includes(input.number)) {
         marksEarned[input.number] = mult;
       }
-
-      // Preserve for Double/Triple reuse
-      input.lastNumber = input.number;
     } else {
       // No valid input — bail
       return;
@@ -962,7 +920,6 @@
       state._currentPlayerTurn._scoring[state._currentPlayerTurn.values.length - 1] = true;
     }
 
-    state.scoresEntered++;
     state.throwCount++;
 
     // If player finished mid-turn, end the turn immediately
@@ -1000,11 +957,6 @@
       state._currentPlayerTurn.total = turnTotal;
       state.history.push(state._currentPlayerTurn);
 
-      // Save this turn's score and player name for display
-      const completedPlayer = state.players[state.currentPlayerIndex];
-      state.lastPlayerScore = state._currentPlayerTurn.total;
-      state.lastPlayerName = completedPlayer ? completedPlayer.name : '';
-
       state._currentPlayerTurn = null;
 
       // Move to next unfixed player
@@ -1025,14 +977,7 @@
 
       // Reset for next player's turn
       state.throwCount = 0;
-      state.currentPlayerScore = 0;
       state.round++;
-    } else {
-      // Still in same player's turn
-      // bust was already reverted in processX01Score, don't add it
-      if (!bust) {
-        state.currentPlayerScore += throwValue;
-      }
     }
 
     // Clear input for next throw
@@ -1344,28 +1289,73 @@
     const container = $('#stats-list');
     container.innerHTML = '';
 
-    const entries = Object.values(stats.players)
-      .filter(e => e.modes)
+    const entries = Object.entries(stats.players)
+      .filter(([, e]) => e.modes)
+      .map(([key, e]) => ({ key, ...e }))
       .sort((a, b) => totalGames(b) - totalGames(a) || a.name.localeCompare(b.name));
 
     if (entries.length === 0) {
       container.innerHTML = '<div class="stats-empty">No stats yet — finish a game to start tracking players.</div>';
+    } else {
+      entries.forEach(entry => {
+        const el = document.createElement('div');
+        el.className = 'stats-player';
+        const cards = ['x01', 'cricket']
+          .map(mode => renderModeCard(entry, mode))
+          .filter(Boolean)
+          .join('');
+        el.innerHTML = `
+          <div class="stats-player-header">
+            <div class="stats-player-name">${entry.name}</div>
+            <button class="remove-player-btn stats-reset-btn">✕</button>
+          </div>
+          ${cards}
+        `;
+        const resetBtn = el.querySelector('.stats-reset-btn');
+        resetBtn.title = `Reset all stats for ${entry.name}`;
+        resetBtn.setAttribute('aria-label', `Reset all stats for ${entry.name}`);
+        resetBtn.addEventListener('click', () => resetPlayerStats(entry.key, entry.name));
+        container.appendChild(el);
+      });
+    }
+
+    renderRecentGames();
+  }
+
+  function resetPlayerStats(key, name) {
+    if (!confirm(`Reset all stats for ${name}? This cannot be undone.`)) return;
+    delete stats.players[key];
+    saveStats();
+    renderStatsScreen();
+  }
+
+  function renderRecentGames() {
+    const el = $('#recent-games');
+    if (!el) return;
+
+    if (!stats.games || stats.games.length === 0) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
       return;
     }
 
-    entries.forEach(entry => {
-      const el = document.createElement('div');
-      el.className = 'stats-player';
-      const cards = ['x01', 'cricket']
-        .map(mode => renderModeCard(entry, mode))
-        .filter(Boolean)
-        .join('');
-      el.innerHTML = `
-        <div class="stats-player-name">${entry.name}</div>
-        ${cards}
+    el.classList.remove('hidden');
+    const rows = stats.games.slice().reverse().map(g => {
+      const date = new Date(g.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const modeLabel = g.mode === 'x01' ? `X01 ${g.x01Start}` : 'Cricket';
+      const scores = g.results.map(r => `${r.name} ${r.score}`).join(' · ');
+      return `
+        <div class="recent-game">
+          <div class="recent-game-top">
+            <span class="recent-game-date">${date}</span>
+            <span class="recent-game-mode">${modeLabel}</span>
+            <span class="recent-game-winner">${g.winner} wins</span>
+          </div>
+          <div class="recent-game-scores">${scores}</div>
+        </div>
       `;
-      container.appendChild(el);
-    });
+    }).join('');
+    el.innerHTML = '<h3 class="recent-games-title">Recent Games</h3>' + rows;
   }
 
   function totalGames(entry) {
@@ -1443,12 +1433,6 @@
 
     // Show modal
     $('#end-modal').classList.remove('hidden');
-
-    // Animate winner card
-    const activeCard = $('#active-player-card');
-    if (results[0].id === state.currentPlayerIndex) {
-      activeCard.classList.add('win-anim');
-    }
   }
 
   function renderResultsModal(results) {

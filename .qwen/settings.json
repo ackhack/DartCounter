@@ -11,7 +11,10 @@
       "Bash(grep *)",
       "Bash(tail *)",
       "Bash(git show *)",
-      "Bash(head *)"
+      "Bash(head *)",
+      "Bash(mkdir *)",
+      "Bash(git mv *)",
+      "Bash(git status *)"
     ]
   },
   "$version": 4

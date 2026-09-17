@@ -19,8 +19,9 @@ The app supports any number of named players (minimum 2, no upper limit), instan
 | `main.js` | Entire app logic in a single IIFE with `'use strict'`. Sections: constants → state → localStorage → event listeners → game flow → input handling → undo → scoring → rendering → stats screen → end game. |
 | `styles.css` | Dark theme built on CSS custom properties in `:root` (`--bg-*`, `--accent`, etc.). Organized by banner comments per screen/component. Mobile-first, `100dvh` layout. |
 | `manifest.json` | PWA manifest — standalone display, portrait-primary, theme color `#16213e`. |
-| `service-worker.js` | Cache-first strategy (`CACHE_NAME = 'dartcounter-v5'`), network fallback, offline navigation fallback to `/index.html`. |
+| `service-worker.js` | Cache-first strategy (`CACHE_NAME = 'dartcounter-v6'`), network fallback, offline navigation fallback to `/index.html`. |
 | `icon-192.png`, `icon-512.png`, `icon-512.svg` | PWA icons. |
+| `test/dartcounter-test.js` | Node E2E harness (stub DOM + in-memory localStorage, loads the real `main.js`, plays full games by clicking stub buttons). |
 
 ## Building and Running
 
@@ -34,7 +35,7 @@ python3 -m http.server 8080
 
 Notes:
 - The service worker only registers over `http(s)` or `localhost` (see `tryRegisterSW()` in `main.js`); opening `index.html` via `file://` skips it silently.
-- There is **no linter and no CI**. The only tests are a Node E2E harness at `.qwen/tmp/dartcounter-test.js` (stub DOM + in-memory localStorage, loads the real `main.js`, plays full games by clicking stub buttons): run `node --check main.js && node .qwen/tmp/dartcounter-test.js`.
+- There is **no linter and no CI**. The only tests are a Node E2E harness at `test/dartcounter-test.js` (stub DOM + in-memory localStorage, loads the real `main.js`, plays full games by clicking stub buttons): run `node --check main.js && node test/dartcounter-test.js`.
 - **Bump `CACHE_NAME` in `service-worker.js`** when changing cached assets so clients pick up the new version on activate.
 
 ## Architecture & Key Conventions
@@ -57,13 +58,14 @@ Notes:
 
 ### Persistence (localStorage)
 - `dartcounter_game` — full in-progress game state, saved after every dart; restored on load only if `gameStarted && !gameOver`.
-- `dartcounter_stats` — per-player lifetime stats keyed by lowercased name, each with a `modes` object holding separate `x01` and `cricket` records (games, wins, runs, turns, darts, best turn/finish, checkout attempts/made, bull darts, plus stored averages: `avgPerTurn`, `avgPerGame`, `winRate`, `checkoutPct`), + last 50 game records. Legacy flat entries are migrated on load (attributed to X01; old `totalTurns` counted darts, so it maps to `totalDarts`).
+- `dartcounter_stats` — per-player lifetime stats keyed by lowercased name, each with a `modes` object holding separate `x01` and `cricket` records (games, wins, runs, turns, darts, best turn/finish, checkout attempts/made, bull darts, plus stored averages: `avgPerTurn`, `avgPerGame`, `winRate`, `checkoutPct`), + last 50 game records (rendered as the Recent Games list on the stats screen). Legacy flat entries are migrated on load (attributed to X01; old `totalTurns` counted darts, so it maps to `totalDarts`; corrupt legacy `bestTurn` values are dropped).
 - `dartcounter_player_names` — up to 20 remembered names, offered via `<datalist id="player-name-suggestions">`. Generated defaults (`Player 1`, …) are never saved.
 
 ### Per-player stats (`updatePlayerStats`, called once per player in `endGame`)
 - True turns are counted from `state.history` entries per player — note `player.turns` is a per-*dart* counter despite its name.
-- Checkout stats are derived by walking the player's history backwards from their final score (`computeX01CheckoutStats`): a turn that started from ≤ `MAX_TURN_VALUE` (60) was an opportunity; the player's last history entry is the finishing turn. Deriving from history (not live counters) keeps undo from skewing stats; `countBullDarts` works the same way from throw labels.
-- The stats screen (`renderStatsScreen`) lists players with a per-mode card each; empty modes are hidden.
+- Checkout stats are derived by walking the player's history backwards from their final score (`computeX01CheckoutStats`): a turn that started from ≤ `MAX_X01_TURN` (180 — 3×T20, the max a 3-dart turn can finish from) was an opportunity; the player's last history entry is the finishing turn. Deriving from history (not live counters) keeps undo from skewing stats; `countBullDarts` works the same way from throw labels.
+- `bestTurn` is the max single-turn score from the player's history (never the game-total runs); legacy/repair passes on load drop or reset stored X01 values above `MAX_X01_TURN`, which are provably corrupt from the old bug.
+- The stats screen (`renderStatsScreen`) lists players with a per-mode card each; empty modes are hidden. Each player card has a ✕ reset button (confirms, deletes that player's stats entry). Below the list, `renderRecentGames` shows the last 50 saved games (date, mode + start, winner, final scores) from `stats.games`.
 
 ### Coding conventions
 - 2-space indentation, single quotes in JS, arrow functions, `const` for all configuration values (see the CONSTANTS block: `CRICKET_NUMBERS`, `CRICKET_TARGET_MARKS`, `X01_OPTIONS`, `MIN_PLAYERS`, `SCORES_PER_TURN`, etc.). **Extract new magic numbers into named constants in this block rather than hardcoding them.**
@@ -77,6 +79,7 @@ Notes:
 - The player-count buttons (2–8) are only quick shortcuts — the real roster is whatever rows exist in `#name-inputs`. The `+ Add Player` button grows the list past 8 (no count button is active then); the per-row ✕ buttons shrink it down to `MIN_PLAYERS` (2), at which point they disable. Removing a row renumbers the rest and preserves the other names (rows are removed from the DOM, not re-rendered).
 - `backToSetup()` hides the end modal — without that, the game-over modal lingers over the setup screen.
 - The game-over check runs right after a turn completes (`finishedCount >= players.length - 1`) and calls `endGame()`, which clears the persisted game state — undo is disabled once `state.gameOver` is true.
+- The header **End** button is the manual finish path — it asks for confirmation before finalizing (destructive: it writes stats for an unfinished game). The automatic game-over path in `submitScore` stays unguarded because it is the real finish.
+- `startGame()` rejects duplicate player names (case-insensitive, via `alert`) and aborts — name-keyed aggregates (stats entries, the modal's per-name best-turn map) would collide.
 - `replayGame()` re-seats players worst-first (loser throws first) using the same settings; the end modal offers Play Again / New Game / Back to Setup.
 - Cricket mark rows use ids `#marks-15` … `#marks-20` and `#marks-bull`; the bull row's label is rendered as `B`.
-- `updateInputPreview()` references a `#input-preview` element that no longer exists in the HTML — the function no-ops safely; it is dead code.

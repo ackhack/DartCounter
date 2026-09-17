@@ -482,7 +482,7 @@ input {
 }
 
 .mark-num {
-  font-size: 0.65rem;
+  font-size: 1em;
   font-weight: 700;
   color: var(--text-muted);
 }
@@ -501,8 +501,8 @@ input {
 }
 
 .mark-dot {
-  width: 8px;
-  height: 8px;
+  width: 1em;
+  height: 1em;
   border-radius: 50%;
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -517,6 +517,12 @@ input {
 .mark-dot.all-filled {
   background: var(--success) !important;
   border-color: var(--success) !important;
+  box-shadow: none !important;
+}
+
+.mark-dot.closed-all {
+  background: #3498db !important;
+  border-color: #3498db !important;
   box-shadow: none !important;
 }
 
@@ -606,8 +612,8 @@ input {
 }
 
 .queue-mark {
-  width: 5px;
-  height: 5px;
+  width: 1em;
+  height: 1em;
   border-radius: 50%;
   background: var(--border);
 }
@@ -618,6 +624,10 @@ input {
 
 .queue-mark.closed {
   background: var(--success);
+}
+
+.queue-mark.closed-all {
+  background: #3498db !important;
 }
 
 /* History Section */
@@ -1046,10 +1056,85 @@ input {
   gap: 0.6rem;
 }
 
+.stats-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .stats-player-name {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Recent Games */
+.recent-games {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.recent-games-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.recent-game {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.recent-game:last-child {
+  margin-bottom: 0;
+}
+
+.recent-game-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.recent-game-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.recent-game-mode {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.recent-game-winner {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--success);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-game-scores {
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 .stats-mode-card {
@@ -1171,16 +1256,6 @@ input {
 /* ===========================
    UTILITIES
    =========================== */
-.bust-anim {
-  animation: bust-shake 0.4s ease;
-}
-
-@keyframes bust-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
-}
-
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 4px;

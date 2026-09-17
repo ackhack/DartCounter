@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dartcounter-v5';
+const CACHE_NAME = 'dartcounter-v6';
 const ASSETS = [
   '/',
   '/index.html',
