@@ -24,6 +24,7 @@ function submitScore(forcedMult) {
     mult = 2;
     throwLabel = 'BE';
   } else if (input.number !== null) {
+    throwValue = input.number;
     if (mult === 1) {
       throwLabel = `${input.number}`;
     } else if (mult === 2) {
@@ -35,6 +36,9 @@ function submitScore(forcedMult) {
     // No valid input — bail
     return;
   }
+  console.log(throwValue);
+  console.log(mult);
+  console.log(throwLabel);
 
   //update counts
   player.turns++;
@@ -42,6 +46,7 @@ function submitScore(forcedMult) {
 
   // If first throw of turn, initialize the turn object
   if (!state._currentPlayerTurn) {
+    console.log("new _currentPlayerTurn")
     state._currentPlayerTurn = {
       round: state.round,
       playerId: player.id,
@@ -142,6 +147,7 @@ function submitScore(forcedMult) {
 }
 
 function processX01Score(player, value) {
+  console.log("X01 updating score")
   player.score -= value;
   player.runs += value;
 

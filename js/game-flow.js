@@ -74,13 +74,13 @@ function initGame(players) {
   state.players = players;
 
   // Initialize cricket marks
+  const cricketSection = $('#cricket-marks-section');
   if (state.mode === 'cricket') {
     state.players.forEach(p => {
       p.marks = {};
       CRICKET_NUMBERS.forEach(n => p.marks[n] = 0);
     });
 
-    const cricketSection = $('#cricket-marks-section');
     cricketSection.style.display = 'grid';
     CRICKET_NUMBERS.forEach(n => {
       const el = $(`#marks-${n}`);

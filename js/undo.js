@@ -7,9 +7,13 @@ function undoLast() {
   if (state.gameOver) return;
 
   //if current player is not set or has not thrown, we use the last entry in history
-  if (!state._currentPlayerTurn && state._currentPlayerTurn.throws.length > 0) {
+  if (state._currentPlayerTurn == null || state._currentPlayerTurn.throws.length == 0) {
     if (state.history.length === 0) return;
     state._currentPlayerTurn = state.history.pop();
+    state.currentPlayerIndex--;
+    if (state.currentPlayerIndex < 0) {
+      state.currentPlayerIndex = state.players.length -1;
+    }
   }
 
   const turn = state._currentPlayerTurn;
