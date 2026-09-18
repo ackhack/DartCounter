@@ -21,6 +21,7 @@ function endGame() {
 
   // Update stats
   results.forEach((p, i) => {
+    p.lastGamePosition = i;
     updatePlayerStats(p, i === 0);
   });
 
@@ -39,9 +40,6 @@ function endGame() {
 
   // Render results modal
   renderResultsModal(results);
-
-  // Show modal
-  $('#end-modal').classList.remove('hidden');
 }
 
 function renderResultsModal(results) {
@@ -55,7 +53,7 @@ function renderResultsModal(results) {
     let details = '';
     if (state.mode === 'x01') {
       details = `<span>${p.finished ? 'Finished' : 'Remaining: ' + p.score}</span>
-                 <span>${p.runs} runs | ${p.turns} turns</span>`;
+                 <span>${p.runs} points | ${p.turns} turns</span>`;
     } else {
       details = `<span>${p.finished ? '✓ Closed' : 'In progress'}</span>
                  <span>${p.runs} points | ${p.turns} turns</span>`;
@@ -98,7 +96,7 @@ function renderResultsModal(results) {
         </div>
         <div class="stat-card">
           <div class="stat-value">${avgRuns}</div>
-          <div class="stat-label">${state.mode === 'cricket' ? 'Avg Points/Turn' : 'Avg Runs/Turn'}</div>
+          <div class="stat-label">${state.mode === 'cricket' ? 'Avg Points/Turn' : 'Avg Points/Turn'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">${overallBestTurn}</div>
@@ -107,4 +105,7 @@ function renderResultsModal(results) {
       </div>
     </div>
   `;
+
+  // Show modal
+  $('#end-modal').classList.remove('hidden');
 }

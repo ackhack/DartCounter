@@ -149,7 +149,7 @@ loadApp();
 // ---------- game drivers ----------
 const modalHidden = () => getEl('end-modal').classList.contains('hidden');
 
-function startGame(names) {
+function startFirstGame(names) {
   getEl('name-inputs').children.length = 0; // reset rendered wrappers
   nameInputs.length = 0;
   nameInputs.push(...nameInputPool); // undo any splices from removeRow()
@@ -225,7 +225,7 @@ function playToCompletion(maxDarts = 400) {
 function readStats() { return JSON.parse(store['dartcounter_stats']); }
 
 // ---------- TEST 2: play a full X01 game ----------
-startGame(['Alice', 'Bob']);
+startFirstGame(['Alice', 'Bob']);
 playToCompletion();
 
 let stats = readStats();
@@ -325,13 +325,13 @@ console.log('PASS 5: persistence across reload');
 // ---------- TEST 6: user scenario — stats screen then Start Game ----------
 getEl('view-stats-btn').click();
 assert.deepStrictEqual(activeScreens(), ['stats']);
-startGame(['Alice', 'Bob']);
+startFirstGame(['Alice', 'Bob']);
 assert.deepStrictEqual(activeScreens(), ['game'], 'starting a game must not leave stats screen active');
 console.log('PASS 6: start game after stats shows only the game screen');
 
 // ---------- TEST 7: X01 bust auto-fills misses and advances to next player ----------
 // Fresh names so stats are not cumulative with earlier tests
-startGame(['Carl', 'Dan']);
+startFirstGame(['Carl', 'Dan']);
 // Turns alternate: Carl T1, Dan T1, Carl T2, Dan T2
 throwTriple(20); throwTriple(20); throwTriple(20); // Carl T1: 301→121
 throwTriple(20); throwTriple(20); throwTriple(20); // Dan T1: 301→121
@@ -361,7 +361,7 @@ assert.strictEqual(dan.checkoutAttempts, 2, 'Dan had opportunities from 121 and 
 console.log('PASS 7: bust ends turn, auto-misses, next player');
 
 // ---------- TEST 8: undoing a busted turn, then re-throwing, keeps dart counts balanced ----------
-startGame(['Eve', 'Frank']);
+startFirstGame(['Eve', 'Frank']);
 throwTriple(20); throwTriple(20); throwTriple(20); // Eve T1: 301→121
 throwTriple(20); throwTriple(20); throwTriple(20); // Frank T1: 301→121
 throwTriple(20); throwSingle(2); specialBtns[2].click(); // Eve T2: →59
@@ -420,7 +420,7 @@ assert.strictEqual(rowCount(), 2, 'cannot remove below 2 players');
 console.log('PASS 9: add/remove players (unlimited, min 2, names preserved, renumbered)');
 
 // ---------- TEST 10: full game with 9 players (beyond the old 8-player cap) ----------
-startGame(['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']);
+startFirstGame(['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']);
 playToCompletion();
 stats = readStats();
 let newWins = 0;
@@ -435,7 +435,7 @@ console.log('PASS 10: full X01 game with 9 players');
 
 // ---------- TEST 11: End button requires confirmation ----------
 getEl('back-to-setup-btn').click(); // close the end modal from TEST 10
-startGame(['Gus', 'Hal']);
+startFirstGame(['Gus', 'Hal']);
 throwTriple(20); // one dart in, game mid-flight
 global.confirm = () => false;
 getEl('end-game-btn').click();
@@ -452,7 +452,7 @@ console.log('PASS 11: End button requires confirmation');
 getEl('back-to-setup-btn').click();
 const alerts = [];
 global.alert = msg => { alerts.push(msg); };
-startGame(['Ivy', 'ivy']);
+startFirstGame(['Ivy', 'ivy']);
 assert.strictEqual(alerts.length, 1, 'case-insensitive duplicate triggers an alert');
 assert.ok(!getEl('game-screen').classList.contains('active'), 'game does not start on duplicate names');
 assert.deepStrictEqual(activeScreens(), ['setup']);
@@ -487,7 +487,7 @@ console.log('PASS 14: recent games list renders');
 // ---------- TEST 15: cricket — queue marks turn blue once every player has closed a number ----------
 getEl('stats-back-btn').click();
 modeBtns[1].click(); // cricket
-startGame(['Pam', 'Quin']);
+startFirstGame(['Pam', 'Quin']);
 const queueHtml = () => getEl('queue-list').children.map(c => c.innerHTML).join('');
 throwTriple(20); throwTriple(20); throwTriple(20); // Pam T1: closes 20 (3 marks)
 assert.ok(queueHtml().includes('class="queue-mark closed"'), 'queue mark is green when only this player has closed the number');
@@ -499,7 +499,7 @@ console.log('PASS 15: cricket queue mark blue when all players closed the number
 
 // ---------- TEST 16: x01 multiplier preview shows the value each number would score ----------
 modeBtns[0].click(); // back to x01 (TEST 15 left cricket selected)
-startGame(['Ike', 'Jay']);
+startFirstGame(['Ike', 'Jay']);
 multBtns[1].click(); // Double, pending before a number press
 assert.strictEqual(numBtns[19].dataset.multPreview, '40', 'Double: 20 previews 40');
 assert.strictEqual(numBtns[0].dataset.multPreview, '2', 'Double: 1 previews 2');
@@ -516,7 +516,7 @@ console.log('PASS 16: x01 multiplier preview on number buttons');
 
 // ---------- TEST 17: cricket shows no multiplier preview ----------
 modeBtns[1].click();
-startGame(['Kim', 'Leo']);
+startFirstGame(['Kim', 'Leo']);
 multBtns[1].click(); // Double
 assert.ok(numBtns.every(b => b.dataset.multPreview === undefined), 'cricket: no previews on any number button');
 console.log('PASS 17: cricket shows no multiplier preview');

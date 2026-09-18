@@ -4,56 +4,35 @@
 'use strict';
 
 function renderGame() {
+  console.log('renderGame')
+
   const player = state.players[state.currentPlayerIndex];
 
-  // Clear cricket marks DOM before populating (prevents stale checkmarks from prev games)
-  const cricketSection = $('#cricket-marks-section');
-  if (state.mode === 'cricket') {
-    cricketSection.style.display = 'grid !important';
-    CRICKET_NUMBERS.concat(['bull']).forEach(n => {
-      const el = $(`#marks-${n}`);
-      if (el) {
-        const numEl = el.querySelector('.mark-num');
-        if (numEl) {
-          numEl.textContent = n === 'bull' ? 'B' : String(n);
-          numEl.classList.remove('closed');
-        }
-      }
-    });
-  } else {
-    cricketSection.style.display = 'none';
-  }
-
-  const activeCard = $('#active-player-card');
-
   // Header info
-  $('#game-mode-label').textContent = state.mode === 'x01' ? 'X01' : 'Cricket';
   $('#round-label').textContent = `Round ${state.round}`;
-
   const finishedCount = state.players.filter(p => p.finished).length;
   const remaining = state.players.length - finishedCount;
-  $('#finish-count').textContent = remaining > 1 ? `${remaining} left` : '';
+  $('#finish-count').textContent = remaining > 1 ? `${remaining} Players left` : '';
 
-  // Active player
+  // Active player name
   $('#active-player-name').textContent = player.name;
 
+  // Active player points
   if (state.mode === 'x01') {
     $('#active-player-score').textContent = player.score;
     $('#active-score-label').textContent = 'Remaining';
   } else {
-    // Cricket: use player's total points (only from cricket targets)
     $('#active-player-score').textContent = player.runs;
     $('#active-score-label').textContent = 'Points';
   }
-
-  $('#active-runs').textContent = state.mode === 'cricket' ? `${player.runs} points` : `${player.runs} runs`;
+  $('#active-runs').textContent = state.mode === 'cricket' ? `` : `${player.runs} points`;
 
   // Throws display — use in-progress turn throws if available
   let throwsToShow = [];
   if (state._currentPlayerTurn) {
     throwsToShow = state._currentPlayerTurn.throws;
   }
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < SCORES_PER_TURN; i++) {
     const slot = $(`#throw-${i}`);
     if (i < throwsToShow.length) {
       slot.textContent = throwsToShow[i];
@@ -65,18 +44,20 @@ function renderGame() {
   }
 
   // Cricket marks - already cleared above, now populate from player data
-  if (state.mode === 'cricket') {
-    CRICKET_NUMBERS.forEach(n => {
-      updateMarkDisplay(`marks-${n}`, player.marks[n] || 0, false, n);
-    });
-    updateMarkDisplay('marks-bull', player.marks['bull'] || 0, true, 'bull');
-  }
+  if (state.mode === 'cricket')
+    renderCricketMarks(player);
 
   // Queue
   renderQueue();
 
   // History
   renderHistory();
+}
+
+function renderCricketMarks(player) {
+  CRICKET_NUMBERS.forEach(n => {
+    updateMarkDisplay(`marks-${n}`, player.marks[n] || 0, false, n);
+  });
 }
 
 function updateMarkDisplay(elementId, marks, isBull, number) {
@@ -86,35 +67,23 @@ function updateMarkDisplay(elementId, marks, isBull, number) {
   const numEl = el.querySelector('.mark-num');
   if (!dotsEl || !numEl) return;
 
+  numEl.textContent = isBull ? 'B' : `${numEl.textContent}`;
+
   dotsEl.innerHTML = '';
   const closed = marks >= CRICKET_TARGET_MARKS;
+  const allPlayersClosed = state.players.every(p => (p.marks[number] || 0) >= CRICKET_TARGET_MARKS);
 
   for (let i = 0; i < CRICKET_TARGET_MARKS; i++) {
     const dot = document.createElement('span');
     dot.className = 'mark-dot';
-    if (i < marks) {
+    if (allPlayersClosed) {
+      dot.classList.add('closed-all');
+    } else if (closed) {
+      dot.classList.add('all-filled');
+    } else if (i < marks) {
       dot.classList.add('filled');
     }
     dotsEl.appendChild(dot);
-  }
-
-  if (closed) {
-    // Green dots when all 3 filled
-    dotsEl.querySelectorAll('.mark-dot.filled').forEach(d => d.classList.add('all-filled'));
-    numEl.classList.add('closed');
-    // Blue number when all players have 3 marks on this number
-    const allPlayersClosed = state.players.every(p => (p.marks[number] || 0) >= CRICKET_TARGET_MARKS);
-    if (allPlayersClosed) {
-      dotsEl.querySelectorAll('.all-filled').forEach(d => d.classList.add('closed-all'));
-      numEl.classList.add('closed-all');
-    } else {
-      numEl.classList.remove('closed-all');
-    }
-    numEl.textContent = isBull ? 'B' : `${numEl.textContent}`;
-  } else {
-    numEl.classList.remove('closed', 'closed-all');
-    numEl.textContent = isBull ? 'B' : elementId.replace('marks-', '');
-    dotsEl.querySelectorAll('.all-filled').forEach(d => d.classList.remove('all-filled'));
   }
 }
 
@@ -135,7 +104,6 @@ function renderQueue() {
   queuePlayers.forEach((p, i) => {
     const el = document.createElement('div');
     el.className = 'queue-player';
-    el.style.opacity = p.finished ? '0.5' : '1';
 
     let scoreText;
     if (p.finished) {
@@ -150,7 +118,7 @@ function renderQueue() {
     let marksPreview = '';
     if (state.mode === 'cricket' && !p.finished) {
       marksPreview = '<div class="queue-marks-preview">';
-      CRICKET_NUMBERS.concat(['bull']).forEach(n => {
+      CRICKET_NUMBERS.forEach(n => {
         const m = p.marks[n] || 0;
         // Blue when every player has closed this number, like the mark-dots
         const allPlayersClosed = state.players.every(pl => (pl.marks[n] || 0) >= CRICKET_TARGET_MARKS);
@@ -186,48 +154,19 @@ function renderHistory() {
 
   // If no entries yet, build all
   if (container.children.length === 0) {
-    entries.forEach(entry => {
-      const el = document.createElement('div');
-      el.className = 'history-entry';
-      el.innerHTML = `
-        <span class="history-round">R${entry.round}</span>
-        <span class="history-player">${entry.name}</span>
-        <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
-        <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
-      `;
-      container.appendChild(el);
-    });
+    entries.forEach(entry => container.appendChild(createHistoryEntryEl(entry)));
   } else {
     const existingTotal = container.children.length;
     const newCount = entries.length;
 
     if (newCount > existingTotal) {
       // A new entry was added — it's the first in the reversed array
-      const entry = entries[0];
-      const el = document.createElement('div');
-      el.className = 'history-entry';
-      el.innerHTML = `
-        <span class="history-round">R${entry.round}</span>
-        <span class="history-player">${entry.name}</span>
-        <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
-        <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
-      `;
       // Insert at the top (newest first)
-      container.prepend(el);
+      container.prepend(createHistoryEntryEl(entries[0]));
     } else if (newCount < existingTotal) {
       // Count decreased (undo removed entry) — rebuild without animation
       container.innerHTML = '';
-      entries.forEach(entry => {
-        const el = document.createElement('div');
-        el.classList.add('history-entry', 'no-anim');
-        el.innerHTML = `
-          <span class="history-round">R${entry.round}</span>
-          <span class="history-player">${entry.name}</span>
-          <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
-          <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
-        `;
-        container.appendChild(el);
-      });
+      entries.forEach(entry => container.appendChild(createHistoryEntryEl(entry, true)));
     }
     // If count is the same, values changed (undo modified a turn) — update in place
     else {
@@ -243,4 +182,16 @@ function renderHistory() {
 
   // Auto-scroll to top (newest entry)
   container.scrollTop = 0;
+}
+
+function createHistoryEntryEl(entry, noAnim = false) {
+  const el = document.createElement('div');
+  el.className = noAnim ? 'history-entry no-anim' : 'history-entry';
+  el.innerHTML = `
+    <span class="history-round">R${entry.round}</span>
+    <span class="history-player">${entry.name}</span>
+    <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
+    <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
+  `;
+  return el;
 }

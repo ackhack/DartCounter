@@ -20,7 +20,7 @@ The app supports any number of named players (minimum 2, no upper limit), instan
 | `js/storage.js` | localStorage layer: load/save for stats, game state, and remembered player names, plus stats computation (`emptyModeStats`, `computeModeAverages`, `computeX01CheckoutStats`, `countBullDarts`, `updatePlayerStats`, `saveGameToHistory`). `loadGameState()` is defined here but never called (see Persistence). |
 | `js/state.js` | Top-level state: `state`, `input`, `stats`, `playerNames`, the `$` / `$$` DOM helpers, and the `screens` map. |
 | `js/setup.js` | Event listener wiring (`setupEventListeners`) and setup-screen UI: player name rows, suggestions, mode/score/count buttons, `highlightCricketTargets`. |
-| `js/game-flow.js` | Game lifecycle: `startGame`, `replayGame`, `newGame`, `backToSetup`, `showScreen`. |
+| `js/game-flow.js` | Game lifecycle: `startFirstGame`, `replayGame`, `newGame`, `backToSetup`, `showScreen`. |
 | `js/input.js` | Button input handling: `selectNumber`, `selectMultiplier`, `selectSpecial`, `clearInput`, multiplier preview, undo-button state. |
 | `js/undo.js` | `undoLast` and its helpers (`revertPlayerStats`, `getMarksForThrow`). |
 | `js/scoring.js` | `submitScore` plus the per-mode scorers `processX01Score` / `processCricketScore`. |
@@ -70,7 +70,7 @@ Notes:
 - Pressing a **number** button scores a dart immediately using the currently active multiplier (default 1), then resets the multiplier to 1. Pressing a **multiplier** after a number re-scores with that multiplier (see `selectMultiplier` / `selectSpecial`).
 - Special buttons: Bull (25), Bullseye (50), MISS (0).
 - One undo (`#undo-btn`) reverts the last single dart, whether the turn is in progress or already in history.
-- **Stale-selection invariant:** a game-winning dart takes the `endGame(); return;` path in `submitScore`, which skips the final `clearInput()` — so `input` still holds the winning number with `selected: true`. `startGame()` and `replayGame()` therefore call `clearInput()`; without it, the first multiplier click of the next game instant-scores a phantom dart from the stale selection.
+- **Stale-selection invariant:** a game-winning dart takes the `endGame(); return;` path in `submitScore`, which skips the final `clearInput()` — so `input` still holds the winning number with `selected: true`. `startFirstGame()` and `replayGame()` therefore call `clearInput()`; without it, the first multiplier click of the next game instant-scores a phantom dart from the stale selection.
 
 ### Persistence (localStorage)
 - `dartcounter_game` — full in-progress game state, saved after every dart. `loadGameState()` (in `js/storage.js`) implements the restore (only if `gameStarted && !gameOver`) but is **never called**, so a page reload does not resume an in-progress game — known gap, not wired up as of the 2026-09-18 split.
@@ -97,6 +97,6 @@ Notes:
 - `backToSetup()` hides the end modal — without that, the game-over modal lingers over the setup screen.
 - The game-over check runs right after a turn completes (`finishedCount >= players.length - 1`) and calls `endGame()`, which clears the persisted game state — undo is disabled once `state.gameOver` is true.
 - The header **End** button is the manual finish path — it asks for confirmation before finalizing (destructive: it writes stats for an unfinished game). The automatic game-over path in `submitScore` stays unguarded because it is the real finish.
-- `startGame()` rejects duplicate player names (case-insensitive, via `alert`) and aborts — name-keyed aggregates (stats entries, the modal's per-name best-turn map) would collide.
+- `startFirstGame()` rejects duplicate player names (case-insensitive, via `alert`) and aborts — name-keyed aggregates (stats entries, the modal's per-name best-turn map) would collide.
 - `replayGame()` re-seats players worst-first (loser throws first) using the same settings; the end modal offers Play Again / New Game / Back to Setup.
 - Cricket mark rows use ids `#marks-15` … `#marks-20` and `#marks-bull`; the bull row's label is rendered as `B`.

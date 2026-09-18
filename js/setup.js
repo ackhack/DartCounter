@@ -35,7 +35,7 @@ function setupEventListeners() {
   $('#add-player-btn').addEventListener('click', addPlayerRow);
 
   // Start game
-  $('#start-game-btn').addEventListener('click', startGame);
+  $('#start-game-btn').addEventListener('click', startFirstGame);
 
   // Stats screen
   $('#view-stats-btn').addEventListener('click', () => {
@@ -52,7 +52,6 @@ function setupEventListeners() {
     if (confirm('End this game now? Current scores will be finalized and saved to stats.')) endGame();
   });
   $('#replay-btn').addEventListener('click', replayGame);
-  $('#new-game-btn').addEventListener('click', newGame);
   $('#back-to-setup-btn').addEventListener('click', backToSetup);
 
   // Number buttons
@@ -75,6 +74,8 @@ function setupEventListeners() {
 }
 
 function updateSetupVisibility() {
+  $('#game-mode-label').textContent = state.mode === 'x01' ? 'X01' : 'Cricket';
+
   const x01Opts = $('#x01-options');
   if (x01Opts) {
     x01Opts.style.display = state.mode === 'x01' ? 'block' : 'none';
@@ -154,12 +155,5 @@ function updateNameInputs() {
     if (state.players[i]) {
       input.value = state.players[i].name;
     }
-  });
-}
-
-function highlightCricketTargets() {
-  $$('.num-btn').forEach(btn => {
-    const num = parseInt(btn.dataset.num);
-    btn.classList.toggle('cricket-target', CRICKET_NUMBERS.includes(num));
   });
 }

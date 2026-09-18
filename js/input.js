@@ -6,7 +6,6 @@
 function selectNumber(num) {
   input.number = num;
   input.special = null;
-  input.selected = true;
 
   // Save the current multiplier value, update UI, then score before resetting
   const currentMult = input.multiplier;
@@ -34,40 +33,16 @@ function selectMultiplier(mult) {
   input.special = null;
   updateMultiplierPreview();
 
-  if (input.selected && input.number !== null) {
-    // Number is currently selected — score immediately with new multiplier
-    $$('.num-btn').forEach(btn => {
-      btn.classList.toggle('selected', input.selected && parseInt(btn.dataset.num) === input.number);
-    });
-    $$('.mult-btn').forEach(btn => {
-      btn.classList.toggle('active', parseInt(btn.dataset.mult) === mult);
-    });
-    $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
-
-    updateUndoButton();
-
-    // Instant scoring
-    submitScore();
-  } else {
-    // No number currently selected — just set multiplier for next number press
-    $$('.num-btn').forEach(btn => btn.classList.remove('selected'));
-    $$('.mult-btn').forEach(btn => {
-      btn.classList.toggle('active', parseInt(btn.dataset.mult) === mult);
-    });
-    $$('.special-btn').forEach(btn => btn.classList.remove('selected'));
-
-    updateUndoButton();
-    // No instant score — wait for number
-  }
+  $$('.mult-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.mult) === mult);
+  });
 }
 
 function selectSpecial(type) {
   input.number = null;
   input.multiplier = 1;
   input.special = type;
-  input.selected = false;
 
-  $$('.num-btn').forEach(btn => btn.classList.remove('selected'));
   $$('.mult-btn').forEach(btn => btn.classList.remove('active'));
   $$('.special-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.special === type);
@@ -83,7 +58,6 @@ function clearInput() {
   input.number = null;
   input.multiplier = 1;
   input.special = null;
-  input.selected = false;
 
   $$('.num-btn').forEach(btn => btn.classList.remove('selected'));
   $$('.mult-btn').forEach((btn, i) => {
