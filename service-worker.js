@@ -1,9 +1,20 @@
-const CACHE_NAME = 'dartcounter-v10';
+const CACHE_NAME = 'dartcounter-v11';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
-  '/main.js',
+  '/js/constants.js',
+  '/js/storage.js',
+  '/js/state.js',
+  '/js/setup.js',
+  '/js/game-flow.js',
+  '/js/input.js',
+  '/js/undo.js',
+  '/js/scoring.js',
+  '/js/render.js',
+  '/js/stats-screen.js',
+  '/js/end-game.js',
+  '/js/main.js',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'

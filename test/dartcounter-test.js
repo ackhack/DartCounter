@@ -1,5 +1,5 @@
-// E2E logic harness: loads the real main.js with a stub DOM and plays
-// full X01 games to verify per-player stats persistence.
+// E2E logic harness: loads the real app scripts (js/*.js) with a stub DOM
+// and plays full X01 games to verify per-player stats persistence.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -124,7 +124,18 @@ global.confirm = () => true;
 global.alert = () => {};
 
 // ---------- load the app ----------
-const src = fs.readFileSync(path.join(__dirname, '../main.js'), 'utf8');
+// Load order matters: constants + storage before state (top-level
+// loadStats()/loadPlayerNames() calls), everything before js/main.js
+// (which runs init()). The concatenated source runs in one scope, exactly
+// like the browser loads the script tags in index.html.
+const APP_FILES = [
+  'constants.js', 'storage.js', 'state.js', 'setup.js', 'game-flow.js',
+  'input.js', 'undo.js', 'scoring.js', 'render.js', 'stats-screen.js',
+  'end-game.js', 'main.js'
+];
+const src = APP_FILES
+  .map(f => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8'))
+  .join('\n');
 function loadApp() {
   // A real page navigation replaces ALL listeners — clear them so a reload
   // doesn't accumulate duplicate handlers on the stub elements.
