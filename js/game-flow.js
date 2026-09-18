@@ -87,7 +87,6 @@ function initGame(players) {
       if (el) {
         const numEl = el.querySelector('.mark-num');
         if (numEl) {
-          numEl.textContent = n === 'bull' ? 'B' : String(n);
           numEl.classList.remove('closed');
         }
       }

@@ -64,10 +64,7 @@ function updateMarkDisplay(elementId, marks, isBull, number) {
   const el = $(`#${elementId}`);
   if (!el) return;
   const dotsEl = el.querySelector('.mark-dots');
-  const numEl = el.querySelector('.mark-num');
-  if (!dotsEl || !numEl) return;
-
-  numEl.textContent = isBull ? 'B' : `${numEl.textContent}`;
+  if (!dotsEl) return;
 
   dotsEl.innerHTML = '';
   const closed = marks >= CRICKET_TARGET_MARKS;

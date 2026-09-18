@@ -18,6 +18,7 @@ function submitScore(forcedMult) {
     throwLabel = 'Miss';
   } else if (input.special === 'bull') {
     throwValue = 25;
+    mult = 1;
     throwLabel = 'Bull';
   } else if (input.special === 'bulleye') {
     throwValue = 25;
@@ -83,9 +84,10 @@ function submitScore(forcedMult) {
   } else {
     //Track if this dart scored points (closed a number in cricket)
     if (state.mode === 'cricket' && cricketResult) {
-      state._currentPlayerTurn._scoring[state.throwCount] = cricketResult.scored;
+      state._currentPlayerTurn._scoring[state.throwCount-1] = cricketResult.scored;
+      console.log("" + state.throwCount + " " + cricketResult.scored)
     } else {
-      state._currentPlayerTurn._scoring[state.throwCount] = 0;
+      state._currentPlayerTurn._scoring[state.throwCount-1] = 0;
     }
 
     // If player finished mid-turn, end the turn immediately
@@ -108,7 +110,7 @@ function submitScore(forcedMult) {
     } else {
       // Cricket: only count points from darts that hit a scoring number
       turnTotal = state._currentPlayerTurn.values.reduce((sum, val, i) => {
-        if (state._currentPlayerTurn._scoring && state._currentPlayerTurn._scoring[i]) return sum + val[2];
+        if (state._currentPlayerTurn._scoring && state._currentPlayerTurn._scoring[i] > 0) return sum + state._currentPlayerTurn._scoring[i];
         return sum;
       }, 0);
     }
@@ -128,7 +130,11 @@ function submitScore(forcedMult) {
     state.currentPlayerIndex = nextIdx;
 
     // Check game over: all but one finished
-    if (state.players.every(p => p.finished)) {
+    let playersFinished = 0;
+    state.players.forEach(p => {
+      if (p.finished) playersFinished++;
+    });
+    if (playersFinished + 1 >= state.players.length) {
       endGame();
       return;
     }
@@ -177,17 +183,17 @@ function processCricketScore(player, value, multiplier) {
     if (marksBefore >= CRICKET_TARGET_MARKS) {
       scored = value * multiplier;
       player.runs += scored;
-    }
+    } else {
+      //calculate new marks and update player data
+      const newMarks = marksBefore + multiplier;
+      player.marks[value] = Math.min(newMarks, CRICKET_TARGET_MARKS);
 
-    //calculate new marks and update player data
-    const newMarks = marksBefore + multiplier;
-    player.marks[value] = Math.min(newMarks, CRICKET_TARGET_MARKS);
-
-    //if we scored more than 3 marks, the extra marks count as points if not all players have closed it
-    if (newMarks > CRICKET_TARGET_MARKS) {
-      const extraMarks = newMarks - CRICKET_TARGET_MARKS;
-      scored = value * extraMarks;
-      player.runs += scored;
+      //if we scored more than 3 marks, the extra marks count as points if not all players have closed it
+      if (newMarks > CRICKET_TARGET_MARKS) {
+        const extraMarks = newMarks - CRICKET_TARGET_MARKS;
+        scored = value * extraMarks;
+        player.runs += scored;
+      }
     }
   }
 

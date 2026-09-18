@@ -12,13 +12,14 @@ function undoLast() {
     state._currentPlayerTurn = state.history.pop();
     state.currentPlayerIndex--;
     if (state.currentPlayerIndex < 0) {
-      state.currentPlayerIndex = state.players.length -1;
+      state.currentPlayerIndex = state.players.length - 1;
     }
   }
 
   const turn = state._currentPlayerTurn;
   const player = state.players[state.currentPlayerIndex];
-  const dartIndex = turn.throws.length - 1;
+  const dartIndex = turn.throws.length -1;
+  console.log("Di" + dartIndex)
   const scored = turn._scoring[dartIndex];
   const lastLabel = turn.throws.pop();
   const lastValue = turn.values.pop();
@@ -48,12 +49,16 @@ function revertPlayerStats(player, value, throwLabel, scored) {
     if (player.score > 0) player.finished = false;
   } else if (state.mode === 'cricket') {
     // Only subtract runs if this dart was scoring
-    if (scored > 0) player.runs -= scored;
+    if (scored > 0) {
+      player.runs -= scored;
+      console.log(scored + " removed")
+    }
 
     //fully multiplied points minus the points that were used for scoring divided by the base value
     //equals the amount of multiplier that was used for marks
-    const marksToRemove = Math.round(value[2] - scored / value[0]);
-    player.marks[value[0]] = Math.max(0, (player.marks[num] || 0) - marksToRemove);
+    const marksToRemove = Math.round((value[2] - scored) / value[0]);
+    console.log(marksToRemove)
+    player.marks[value[0]] = Math.max(0, (player.marks[value[0]] || 0) - marksToRemove);
 
     // Unfinish if not all marks are closed
     const stillClosed = CRICKET_NUMBERS.every(n => (player.marks[n] || 0) >= CRICKET_TARGET_MARKS);
