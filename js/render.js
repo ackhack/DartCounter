@@ -99,14 +99,13 @@ function renderQueue() {
   }
 
   queuePlayers.forEach((p, i) => {
+    if (p.finished) return;
+
     const el = document.createElement('div');
     el.className = 'queue-player';
 
     let scoreText;
-    if (p.finished) {
-      scoreText = '✓ DONE';
-      el.classList.add('finished');
-    } else if (state.mode === 'x01') {
+    if (state.mode === 'x01') {
       scoreText = p.score;
     } else {
       scoreText = `${p.runs} points`;

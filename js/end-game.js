@@ -9,11 +9,7 @@ function endGame() {
 
   // Determine results order
   const results = [...state.players].sort((a, b) => {
-    if (a.finished && !b.finished) return -1;
-    if (!a.finished && b.finished) return 1;
-    // If both finished or both not, sort by score (X01: lower is better, Cricket: higher is better)
-    if (state.mode === 'x01') return a.score - b.score;
-    return b.runs - a.runs;
+    return b.lastGamePosition - a.lastGamePosition;
   });
 
   // Mark winner

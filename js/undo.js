@@ -19,7 +19,6 @@ function undoLast() {
   const turn = state._currentPlayerTurn;
   const player = state.players[state.currentPlayerIndex];
   const dartIndex = turn.throws.length -1;
-  console.log("Di" + dartIndex)
   const scored = turn._scoring[dartIndex];
   const lastLabel = turn.throws.pop();
   const lastValue = turn.values.pop();
