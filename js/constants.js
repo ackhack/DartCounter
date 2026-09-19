@@ -12,3 +12,11 @@ const CRICKET_TARGET_MARKS = 3;
 const MIN_PLAYERS = 2;
 const SCORES_PER_TURN = 3;
 const MAX_X01_TURN = 180;
+
+function isX01() {
+  return state.mode === 'x01';
+}
+
+function isCricket() {
+  return state.mode === 'cricket';
+}

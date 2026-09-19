@@ -84,10 +84,10 @@ function submitScore(forcedMult) {
   } else {
     //Track if this dart scored points (closed a number in cricket)
     if (isCricket() && cricketResult) {
-      state._currentPlayerTurn._scoring[state.throwCount-1] = cricketResult.scored;
+      state._currentPlayerTurn._scoring[state.throwCount - 1] = cricketResult.scored;
       console.log("" + state.throwCount + " " + cricketResult.scored)
     } else {
-      state._currentPlayerTurn._scoring[state.throwCount-1] = 0;
+      state._currentPlayerTurn._scoring[state.throwCount - 1] = 0;
     }
 
     // If player finished mid-turn, end the turn immediately
@@ -129,6 +129,14 @@ function submitScore(forcedMult) {
     }
     state.currentPlayerIndex = nextIdx;
 
+    //In Cricket if all players have closed, the game is practically over, we handle this here
+    const allPlayersClosed = state.players.every(p => CRICKET_NUMBERS.every(n => (p.marks[n] || 0) >= CRICKET_TARGET_MARKS));
+    if (isCricket() && allPlayersClosed) {
+      cricketMultiplePlayerFinish();
+      endGame();
+      return;
+    }
+
     // Check game over: all but one finished
     let playersFinished = 0;
     state.players.forEach(p => {
@@ -166,6 +174,10 @@ function processX01Score(player, value) {
 
   // Check if player finished (score === 0)
   if (player.score === 0) {
+    // Count of players still in the game (incl. this one). endGame() sorts
+    // descending, so the first finisher gets the highest value and the last
+    // remaining player (never set, stays 0) ranks last.
+    player.currentGamePosition = state.players.filter(p => !p.finished).length;
     player.finished = true;
   }
 
@@ -197,13 +209,33 @@ function processCricketScore(player, value, multiplier) {
     }
   }
 
-  //player can only finish if all numbers are closed and they have the most points or are tied for most points
-  const allMarked = CRICKET_NUMBERS.every(n => player.marks[n] >= CRICKET_TARGET_MARKS);
-
-  const hasMostPoints = state.players.every(p => p === player || p.runs <= player.runs);
-  if (allMarked && hasMostPoints) {
+  if (cricketPlayerFinished(player)) {
     player.finished = true;
+    player.currentGamePosition = state.players.filter(p => !p.finished).length;
+    cricketMultiplePlayerFinish();
     return { finished: true, scored };
   }
   return { finished: false, scored };
+}
+
+function cricketPlayerFinished(player) {
+  //player can only finish if all numbers are closed and they have the most points or are tied for most points
+  const allMarked = CRICKET_NUMBERS.every(n => player.marks[n] >= CRICKET_TARGET_MARKS);
+  const hasMostPoints = state.players.every(p => p === player || p.finished || p.runs <= player.runs);
+  return allMarked && hasMostPoints;
+}
+
+function cricketMultiplePlayerFinish() {
+  let anyFinished;
+  do {
+    anyFinished = false;
+    //get every player that is not finished but can finish and finish them
+    state.players.forEach(p => {
+      if (!p.finished && cricketPlayerFinished(p)) {
+        p.finished = true;
+        anyFinished = true;
+        p.currentGamePosition = state.players.filter(p => !p.finished).length;
+      }
+    });
+  } while (anyFinished);
 }

@@ -10,7 +10,7 @@ function endGame() {
 
   // Determine results order
   const results = [...state.players].sort((a, b) => {
-    return b.lastGamePosition - a.lastGamePosition;
+    return b.currentGamePosition - a.currentGamePosition;
   });
 
   // Mark winner
@@ -19,6 +19,7 @@ function endGame() {
   // Update stats
   results.forEach((p, i) => {
     p.lastGamePosition = i;
+    p.currentGamePosition = 0;
     updatePlayerStats(p, i === 0);
   });
 

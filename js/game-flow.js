@@ -39,7 +39,8 @@ function startFirstGame() {
     turns: 0,
     runs: 0,
     marks: {},
-    finished: false
+    finished: false,
+    currentGamePosition: 0
   })));
 }
 
@@ -60,7 +61,8 @@ function replayGame() {
     turns: 0,
     runs: 0,
     marks: {},
-    finished: false
+    finished: false,
+    currentGamePosition: 0
   })));
 }
 
@@ -74,9 +76,8 @@ function initGame(players) {
   state.players = players;
 
   // Initialize cricket marks
-  const isCricket = isCricket();
   const cricketSection = $('#cricket-marks-section');
-  if (isCricket) {
+  if (isCricket()) {
     state.players.forEach(p => {
       p.marks = {};
       CRICKET_NUMBERS.forEach(n => p.marks[n] = 0);
@@ -99,12 +100,12 @@ function initGame(players) {
   // In cricket only 15-20 (and bull) are targetable — hide the rest and
   // reflow the grid to 3 columns so 15-20 form a tidy 2-row block.
   $$('.num-btn').forEach(btn => {
-    btn.style.display = isCricket && parseInt(btn.dataset.num) < 15 ? 'none' : '';
+    btn.style.display = isCricket() && parseInt(btn.dataset.num) < 15 ? 'none' : '';
   });
-  $('.number-grid').classList.toggle('cricket-grid', isCricket);
+  $('.number-grid').classList.toggle('cricket-grid', isCricket());
 
   // Quick-turn presets are X01 checkout combos — hide them in cricket.
-  $('#preset-section').style.display = isCricket ? 'none' : '';
+  $('#preset-section').style.display = isCricket() ? 'none' : '';
 
   state.currentPlayerIndex = 0;
   state.throwCount = 0;

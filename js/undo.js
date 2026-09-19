@@ -45,7 +45,10 @@ function revertPlayerStats(player, value, throwLabel, scored) {
   if (isX01()) {
     player.score += value[2];
     player.runs -= value[2];
-    if (player.score > 0) player.finished = false;
+    if (player.score > 0) {
+      player.finished = false;
+      player.currentGamePosition = 0;
+    }
   } else if (isCricket()) {
     // Only subtract runs if this dart was scoring
     if (scored > 0) {
@@ -61,6 +64,9 @@ function revertPlayerStats(player, value, throwLabel, scored) {
 
     // Unfinish if not all marks are closed
     const stillClosed = CRICKET_NUMBERS.every(n => (player.marks[n] || 0) >= CRICKET_TARGET_MARKS);
-    if (!stillClosed) player.finished = false;
+    if (!stillClosed) {
+      player.finished = false;
+      player.currentGamePosition = 0;
+    }
   }
 }
