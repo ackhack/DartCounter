@@ -119,8 +119,13 @@ function renderQueue() {
         const m = p.marks[n] || 0;
         // Blue when every player has closed this number, like the mark-dots
         const allPlayersClosed = state.players.every(pl => (pl.marks[n] || 0) >= CRICKET_TARGET_MARKS);
-        const cls = allPlayersClosed ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (m > 0 ? 'filled' : ''));
-        marksPreview += `<span class="queue-mark ${cls}"></span>`;
+        const label = n === BULL_NUMBER ? 'B' : String(n);
+        let dots = '';
+        for (let d = 0; d < CRICKET_TARGET_MARKS; d++) {
+          const dotCls = allPlayersClosed ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
+          dots += `<span class="queue-mark-dot ${dotCls}"></span>`;
+        }
+        marksPreview += `<span class="queue-mark">${label}${dots}</span>`;
       });
       marksPreview += '</div>';
     }
@@ -129,8 +134,8 @@ function renderQueue() {
       <div class="queue-player-info">
         <span class="queue-position">${i + 1}</span>
         <span class="queue-player-name">${p.name}</span>
-        ${marksPreview}
       </div>
+      ${marksPreview}
       <span class="queue-player-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
     `;
 

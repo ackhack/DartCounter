@@ -17,7 +17,11 @@
       "Bash(git status *)",
       "Bash(sed *)",
       "Bash(git status)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(do *)",
+      "Bash(done)",
+      "Bash(ls *)",
+      "Bash(find *)"
     ]
   },
   "$version": 4

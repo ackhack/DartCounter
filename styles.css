@@ -640,30 +640,47 @@ input {
   text-decoration: line-through;
 }
 
-/* Cricket marks in queue — kept compact next to name/score */
+/* Cricket marks in queue — fills the free row space; labels + 3 slot dots
+   (empty ones dark) scale with the div's width via container units */
 .queue-marks-preview {
   display: flex;
-  gap: 0.1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
   margin-left: 0.4rem;
-  font-size: 0.9rem;
+  margin-right: 0.4rem;
+  font-weight: 700;
+  container-type: inline-size;
 }
 
 .queue-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.15em;
+  font-size: 0.7rem; /* fallback when container query units are unsupported */
+  font-size: 2.9cqw;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.queue-mark-dot {
   width: 1em;
   height: 1em;
   border-radius: 50%;
   background: var(--border);
+  flex-shrink: 0;
 }
 
-.queue-mark.filled {
+.queue-mark-dot.filled {
   background: var(--accent);
 }
 
-.queue-mark.closed {
+.queue-mark-dot.closed {
   background: var(--success);
 }
 
-.queue-mark.closed-all {
+.queue-mark-dot.closed-all {
   background: #3498db !important;
 }
 
@@ -1254,6 +1271,19 @@ input {
   /* Narrower name column on phones so name + marks + score still fit */
   .queue-player-name {
     width: 5rem;
+  }
+
+  /* Marks wrap to a second row, indented under the player name
+     (1.25rem position badge + 0.4rem gap) */
+  .queue-player {
+    flex-wrap: wrap;
+  }
+
+  .queue-marks-preview {
+    flex-basis: 100%;
+    order: 3;
+    margin-left: 1.65rem;
+    margin-top: 0.2rem;
   }
 
   .history-section {
