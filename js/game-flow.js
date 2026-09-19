@@ -74,8 +74,9 @@ function initGame(players) {
   state.players = players;
 
   // Initialize cricket marks
+  const isCricket = state.mode === 'cricket';
   const cricketSection = $('#cricket-marks-section');
-  if (state.mode === 'cricket') {
+  if (isCricket) {
     state.players.forEach(p => {
       p.marks = {};
       CRICKET_NUMBERS.forEach(n => p.marks[n] = 0);
@@ -94,6 +95,13 @@ function initGame(players) {
   } else {
     cricketSection.style.display = 'none';
   }
+
+  // In cricket only 15-20 (and bull) are targetable — hide the rest and
+  // reflow the grid to 3 columns so 15-20 form a tidy 2-row block.
+  $$('.num-btn').forEach(btn => {
+    btn.style.display = isCricket && parseInt(btn.dataset.num) < 15 ? 'none' : '';
+  });
+  $('.number-grid').classList.toggle('cricket-grid', isCricket);
 
   state.currentPlayerIndex = 0;
   state.throwCount = 0;

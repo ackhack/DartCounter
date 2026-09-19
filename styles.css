@@ -802,6 +802,11 @@ input {
   gap: 0.35rem;
 }
 
+/* Cricket: only 15-20 are shown — 3 columns make a 2x3 block */
+.number-grid.cricket-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .num-btn {
   padding: 0.65rem 0.3rem;
   background: var(--bg-tertiary);
