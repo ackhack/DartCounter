@@ -889,6 +889,18 @@ input {
   color: #1a1a2e;
 }
 
+.special-btn.bull {
+  border: 2px solid var(--success);
+}
+
+.special-btn.bulleye {
+  border: 2px solid var(--accent);
+}
+
+.special-btn.miss {
+  border: 2px solid #3498db;
+}
+
 /* Input Actions */
 .input-actions {
   display: flex;
