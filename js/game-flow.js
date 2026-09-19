@@ -115,6 +115,7 @@ function initGame(players) {
   state._currentPlayerTurn = null;
 
   showScreen('game');
+  updateUndoButton();
   renderGame();
 }
 

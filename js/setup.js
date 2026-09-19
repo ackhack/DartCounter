@@ -69,8 +69,9 @@ function setupEventListeners() {
     btn.addEventListener('click', () => selectSpecial(btn.dataset.special));
   });
 
-  // Submit / Undo
+  // Submit / Undo / Skip turn
   $('#undo-btn').addEventListener('click', undoLast);
+  $('#next-btn').addEventListener('click', skipToNextPlayer);
 
   // Quick-turn presets (X01) — submit a full 3-dart turn in one tap
   $$('.preset-btn').forEach(btn => {

@@ -809,6 +809,8 @@ input {
 
 .num-btn {
   padding: 0.65rem 0.3rem;
+  /* Explicit row height so quick-turn presets can match it exactly */
+  height: 2.7rem;
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
@@ -912,7 +914,8 @@ input {
   gap: 0.3rem;
 }
 
-.undo-btn {
+.undo-btn,
+.next-btn {
   flex: 1;
   padding: 0.65rem;
   background: var(--warning);
@@ -923,11 +926,20 @@ input {
   transition: all var(--transition);
 }
 
+.next-btn {
+  background: #3498db;
+}
+
 .undo-btn:hover:not(:disabled) {
   background: #f5b041;
 }
 
-.undo-btn:disabled {
+.next-btn:hover:not(:disabled) {
+  background: #2f89c5;
+}
+
+.undo-btn:disabled,
+.next-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
@@ -941,6 +953,8 @@ input {
 
 .preset-btn {
   padding: 0.5rem 0.3rem;
+  /* Same row height as .num-btn so both grids align */
+  height: 2.7rem;
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
@@ -1305,6 +1319,7 @@ input {
   /* Compact input rows so the score panel keeps most of the screen */
   .num-btn {
     padding: 0.5rem 0.25rem;
+    height: 2.4rem;
   }
 
   .special-btn {
@@ -1314,6 +1329,7 @@ input {
   .preset-btn {
     padding: 0.45rem 0.2rem;
     font-size: 0.72rem;
+    height: 2.4rem;
   }
 
   .queue-section {

@@ -5,6 +5,7 @@
 
 function endGame() {
   state.gameOver = true;
+  updateUndoButton();
   clearGameState();
 
   // Determine results order

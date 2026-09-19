@@ -87,6 +87,7 @@ function updateUndoButton() {
   const undoBtn = $('#undo-btn');
   // Enable undo if there's an incomplete turn or completed history to undo
   undoBtn.disabled = !state._currentPlayerTurn && state.history.length === 0 || state.gameOver;
+  $('#next-btn').disabled = !state.gameStarted || state.gameOver;
 }
 
 // Turn a single token ("T20", "D20", "20", "Bull", "BE", "0") into the
@@ -132,6 +133,19 @@ function submitPresetTurn(tokens) {
   for (const token of tokens) {
     if (state.gameOver || state.currentPlayerIndex !== startIdx) break;
     applyThrowToken(token);
+    submitScore();
+  }
+}
+
+// Score MISS for the current player's remaining darts, handing the turn to
+// the next player. Reuses the normal scoring path so each miss lands in turn
+// history and stays individually undoable. The turn-end path resets throwCount
+// and advances the player, so the index check is what stops the loop.
+function skipToNextPlayer() {
+  if (state.gameOver) return;
+  const startIdx = state.currentPlayerIndex;
+  while (state.throwCount < SCORES_PER_TURN && state.currentPlayerIndex === startIdx && !state.gameOver) {
+    applyThrowToken('0');
     submitScore();
   }
 }
