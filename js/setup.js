@@ -71,6 +71,11 @@ function setupEventListeners() {
 
   // Submit / Undo
   $('#undo-btn').addEventListener('click', undoLast);
+
+  // Quick-turn presets (X01) — submit a full 3-dart turn in one tap
+  $$('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => submitPresetTurn(btn.dataset.turn.split(/\s+/)));
+  });
 }
 
 function updateSetupVisibility() {

@@ -88,3 +88,50 @@ function updateUndoButton() {
   // Enable undo if there's an incomplete turn or completed history to undo
   undoBtn.disabled = !state._currentPlayerTurn && state.history.length === 0 || state.gameOver;
 }
+
+// Turn a single token ("T20", "D20", "20", "Bull", "BE", "0") into the
+// input state submitScore() expects for one dart.
+function applyThrowToken(token) {
+  input.number = null;
+  input.multiplier = 1;
+  input.special = null;
+
+  const t = token.trim().toUpperCase();
+  if (t === 'BULL') {
+    input.special = 'bull';
+  } else if (t === 'BE' || t === 'BULLSEYE') {
+    input.special = 'bulleye';
+  } else if (t === '0' || t === 'MISS') {
+    input.special = '0';
+  } else {
+    let mult = 1;
+    let numStr = t;
+    if (t.startsWith('T')) {
+      mult = 3;
+      numStr = t.slice(1);
+    } else if (t.startsWith('D')) {
+      mult = 2;
+      numStr = t.slice(1);
+    }
+    const num = parseInt(numStr, 10);
+    if (!Number.isNaN(num)) {
+      input.number = num;
+      input.multiplier = mult;
+    }
+  }
+}
+
+// Submit a quick-turn preset (e.g. "T20 20 20") dart by dart, reusing the
+// normal scoring path. It fills the current player's remaining darts and stops
+// the instant the turn ends (bust, checkout, or game over), so it can never
+// score a dart onto the next player. Each dart stays individually undoable.
+function submitPresetTurn(tokens) {
+  if (state.gameOver) return;
+
+  const startIdx = state.currentPlayerIndex;
+  for (const token of tokens) {
+    if (state.gameOver || state.currentPlayerIndex !== startIdx) break;
+    applyThrowToken(token);
+    submitScore();
+  }
+}

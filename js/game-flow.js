@@ -103,6 +103,9 @@ function initGame(players) {
   });
   $('.number-grid').classList.toggle('cricket-grid', isCricket);
 
+  // Quick-turn presets are X01 checkout combos — hide them in cricket.
+  $('#preset-section').style.display = isCricket ? 'none' : '';
+
   state.currentPlayerIndex = 0;
   state.throwCount = 0;
   state.round = 1;
