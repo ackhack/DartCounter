@@ -42,11 +42,11 @@ function revertPlayerStats(player, value, throwLabel, scored) {
     return;
   }
   player.turns--;
-  if (state.mode === 'x01') {
+  if (isX01()) {
     player.score += value[2];
     player.runs -= value[2];
     if (player.score > 0) player.finished = false;
-  } else if (state.mode === 'cricket') {
+  } else if (isCricket()) {
     // Only subtract runs if this dart was scoring
     if (scored > 0) {
       player.runs -= scored;

@@ -73,7 +73,7 @@ function updateMultiplierPreview() {
   // X01 only — in cricket the multiplier adds marks, not a score preview.
   // A pending multiplier (>1) only exists right after Double/Triple is
   // pressed, before a number, so this is the state the preview describes.
-  const show = state.mode === 'x01' && input.multiplier > 1;
+  const show = isX01() && input.multiplier > 1;
   $$('.num-btn').forEach(btn => {
     if (show) {
       btn.dataset.multPreview = String(parseInt(btn.dataset.num) * input.multiplier);

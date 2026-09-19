@@ -62,10 +62,10 @@ function submitScore(forcedMult) {
 
   // Process score based on mode
   let bust = false;
-  let cricketResult = state.mode === 'cricket' ? null : undefined;
-  if (state.mode === 'x01') {
+  let cricketResult = isCricket() ? null : undefined;
+  if (isX01()) {
     bust = processX01Score(player, throwValue * mult);
-  } else if (state.mode === 'cricket') {
+  } else if (isCricket()) {
     cricketResult = processCricketScore(player, throwValue, mult);
   }
 
@@ -83,7 +83,7 @@ function submitScore(forcedMult) {
     }
   } else {
     //Track if this dart scored points (closed a number in cricket)
-    if (state.mode === 'cricket' && cricketResult) {
+    if (isCricket() && cricketResult) {
       state._currentPlayerTurn._scoring[state.throwCount-1] = cricketResult.scored;
       console.log("" + state.throwCount + " " + cricketResult.scored)
     } else {
@@ -91,7 +91,7 @@ function submitScore(forcedMult) {
     }
 
     // If player finished mid-turn, end the turn immediately
-    if (cricketResult?.finished || (state.mode === 'x01' && player.finished)) {
+    if (cricketResult?.finished || (isX01() && player.finished)) {
       state.throwCount = SCORES_PER_TURN;
     }
   }
@@ -102,7 +102,7 @@ function submitScore(forcedMult) {
     let turnTotal;
 
     // Calculate turn total based on mode
-    if (state.mode === 'x01') {
+    if (isX01()) {
       // For X01, total excludes busted values
       turnTotal = state._currentPlayerTurn.values.reduce(
         (sum, val, i) => sum + (state._currentPlayerTurn.throws[i] && state._currentPlayerTurn.throws[i].includes('BUST') ? 0 : val[2]), 0

@@ -74,7 +74,7 @@ function initGame(players) {
   state.players = players;
 
   // Initialize cricket marks
-  const isCricket = state.mode === 'cricket';
+  const isCricket = isCricket();
   const cricketSection = $('#cricket-marks-section');
   if (isCricket) {
     state.players.forEach(p => {

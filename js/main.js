@@ -21,4 +21,12 @@ function tryRegisterSW() {
   }
 }
 
+function isX01() {
+  return state.mode === 'x01';
+}
+
+function isCricket() {
+  return state.mode === 'cricket';
+}
+
 init();

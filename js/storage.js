@@ -184,11 +184,11 @@ function updatePlayerStats(player, isWinner) {
   // Best single turn this game (busted X01 turns total 0 by history accounting)
   const playerBestTurn = entries.reduce((max, h) => Math.max(max, h.total || 0), 0);
   if (playerBestTurn > m.bestTurn) m.bestTurn = playerBestTurn;
-  if (state.mode === 'x01' && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
+  if (isX01() && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
     m.bestScore = player.score;
   }
   m.bullDarts += countBullDarts(player);
-  if (state.mode === 'x01') {
+  if (isX01()) {
     const co = computeX01CheckoutStats(player);
     m.checkoutAttempts += co.attempts;
     m.checkouts += co.made;
@@ -201,7 +201,7 @@ function saveGameToHistory(result) {
   stats.games.push({
     date: Date.now(),
     mode: state.mode,
-    x01Start: state.mode === 'x01' ? state.x01Start : null,
+    x01Start: isX01() ? state.x01Start : null,
     players: state.players.map(p => ({ name: p.name, finished: p.finished, runs: p.runs })),
     winner: result.winner,
     results: result.results

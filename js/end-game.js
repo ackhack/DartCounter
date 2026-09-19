@@ -28,7 +28,7 @@ function endGame() {
     results: results.map((p, i) => ({
       position: i + 1,
       name: p.name,
-      score: state.mode === 'x01' ? p.score : p.runs,
+      score: isX01() ? p.score : p.runs,
       runs: p.runs,
       turns: p.turns,
       finished: p.finished
@@ -48,7 +48,7 @@ function renderResultsModal(results) {
     el.className = 'result-entry';
 
     let details = '';
-    if (state.mode === 'x01') {
+    if (isX01()) {
       details = `<span>${p.finished ? 'Finished' : 'Remaining: ' + p.score}</span>
                  <span>${p.runs} points | ${p.turns} turns</span>`;
     } else {
@@ -93,7 +93,7 @@ function renderResultsModal(results) {
         </div>
         <div class="stat-card">
           <div class="stat-value">${avgRuns}</div>
-          <div class="stat-label">${state.mode === 'cricket' ? 'Avg Points/Turn' : 'Avg Points/Turn'}</div>
+          <div class="stat-label">${isCricket() ? 'Avg Points/Turn' : 'Avg Points/Turn'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">${overallBestTurn}</div>

@@ -80,11 +80,11 @@ function setupEventListeners() {
 }
 
 function updateSetupVisibility() {
-  $('#game-mode-label').textContent = state.mode === 'x01' ? 'X01' : 'Cricket';
+  $('#game-mode-label').textContent = isX01() ? 'X01' : 'Cricket';
 
   const x01Opts = $('#x01-options');
   if (x01Opts) {
-    x01Opts.style.display = state.mode === 'x01' ? 'block' : 'none';
+    x01Opts.style.display = isX01() ? 'block' : 'none';
   }
 }
 

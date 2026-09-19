@@ -18,14 +18,14 @@ function renderGame() {
   $('#active-player-name').textContent = player.name;
 
   // Active player points
-  if (state.mode === 'x01') {
+  if (isX01()) {
     $('#active-player-score').textContent = player.score;
     $('#active-score-label').textContent = 'Remaining';
   } else {
     $('#active-player-score').textContent = player.runs;
     $('#active-score-label').textContent = 'Points';
   }
-  $('#active-runs').textContent = state.mode === 'cricket' ? `` : `${player.runs} points`;
+  $('#active-runs').textContent = isCricket() ? `` : `${player.runs} points`;
 
   // Throws display — use in-progress turn throws if available
   let throwsToShow = [];
@@ -44,7 +44,7 @@ function renderGame() {
   }
 
   // Cricket marks - already cleared above, now populate from player data
-  if (state.mode === 'cricket')
+  if (isCricket())
     renderCricketMarks(player);
 
   // Queue
@@ -105,14 +105,14 @@ function renderQueue() {
     el.className = 'queue-player';
 
     let scoreText;
-    if (state.mode === 'x01') {
+    if (isX01()) {
       scoreText = p.score;
     } else {
       scoreText = `${p.runs} points`;
     }
 
     let marksPreview = '';
-    if (state.mode === 'cricket' && !p.finished) {
+    if (isCricket() && !p.finished) {
       marksPreview = '<div class="queue-marks-preview">';
       CRICKET_NUMBERS.forEach(n => {
         const m = p.marks[n] || 0;
