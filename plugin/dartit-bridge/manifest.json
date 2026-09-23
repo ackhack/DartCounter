@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "DartIt to DartCounter Bridge",
+  "version": "1.0",
+  "description": "Captures dartit.net detect responses and forwards each throw to the local DartCounter site for auto-scoring.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://dartit.net/*",
+    "https://vis.dartit.net/*",
+    "http://localhost:8080/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://dartit.net/*"],
+      "js": ["injected.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://dartit.net/*"],
+      "js": ["dartit-content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["http://localhost:8080/*"],
+      "js": ["dartcounter-content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

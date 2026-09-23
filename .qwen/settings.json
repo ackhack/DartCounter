@@ -21,7 +21,10 @@
       "Bash(do *)",
       "Bash(done)",
       "Bash(ls *)",
-      "Bash(find *)"
+      "Bash(find *)",
+      "Bash(curl *)",
+      "Bash(sort)",
+      "Bash(echo)"
     ]
   },
   "$version": 4
