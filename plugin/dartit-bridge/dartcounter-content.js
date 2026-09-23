@@ -22,6 +22,8 @@
         if (reg && reg.active) {
           reg.active.postMessage(payload);
           console.log('[dartit-bridge] sent throw to site service worker');
+          console.log(payload)
+          console.log(message.data)
         } else {
           console.warn('[dartit-bridge] no active site service worker');
         }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dartcounter-v14';
+const CACHE_NAME = 'dartcounter-v15';
 const ASSETS = [
   '/',
   '/index.html',
@@ -24,6 +24,10 @@ const ASSETS = [
   '/icon-192.png',
   '/icon-512.png'
 ];
+
+// Runs each time the SW starts — check the SW console for this to confirm
+// which version is active after a cache bump.
+console.log('[dartit-bridge] site SW running (cache ' + CACHE_NAME + ')');
 
 // Install — cache all assets
 self.addEventListener('install', (event) => {
@@ -103,9 +107,10 @@ function parseDetect(data) {
 }
 
 self.addEventListener('message', (event) => {
+  console.log('service received')
   const msg = event.data;
   if (!msg || msg.type !== 'dartit-detect') return;
-
+console.log('service received1')
   const raw = msg.data;
   console.log('[dartit-bridge] site SW got detect:', raw);
 
@@ -118,10 +123,19 @@ self.addEventListener('message', (event) => {
   console.log('[dartit-bridge] site SW parsed token:', token);
 
   self.clients
-    .matchAll({ type: 'window' })
+    .matchAll({ type: 'window', includeUncontrolled: true })
     .then((clients) => {
+      console.log(
+        '[dartit-bridge] site SW relaying to', clients.length, 'client(s):',
+        clients.map((c) => c.url)
+      );
       clients.forEach((client) => {
+        console.log('sending to site')
         client.postMessage({ type: 'dartit-throw', token: token, raw: raw });
+        console.log('sent to site')
       });
+    })
+    .catch((e) => {
+      console.warn('[dartit-bridge] site SW matchAll failed:', e);
     });
 });

@@ -8,6 +8,22 @@
 // ===========================
 'use strict';
 
+// Tabs where dartcounter-content.js is injected (see manifest matches): any
+// port on localhost or the LAN IP. Used only to decide whether a failed send
+// deserves a warning.
+function isDartCounterTab(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === 'http:' &&
+      (u.hostname === 'localhost' || u.hostname === '192.168.178.92')
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
 browser.runtime.onMessage.addListener((message) => {
   if (!message || message.type !== 'detect') return;
 
@@ -28,18 +44,20 @@ async function broadcastToAllTabs(data) {
     console.warn('[dartit-bridge] no tabs open — ignoring throw.');
     return;
   }
+  console.log(tabs.length + ' tabs');
 
   let delivered = 0;
   await Promise.all(
     tabs.map(async (tab) => {
       try {
+        console.log('[dartit-bridge] sending to tab ' + tab.id + " with url " + tab.url);
         await browser.tabs.sendMessage(tab.id, { type: 'dartit-detect', data: data });
         delivered++;
         console.log('[dartit-bridge] forwarded to tab', tab.id);
       } catch (e) {
         // Expected for tabs without our content script (or not reloaded after
         // the add-on was installed). Only warn if it looks like our tab.
-        if (tab.url && tab.url.startsWith('http://localhost:8080')) {
+        if (isDartCounterTab(tab.url)) {
           console.warn(
             '[dartit-bridge] could not reach DartCounter tab',
             tab.id,
@@ -47,6 +65,8 @@ async function broadcastToAllTabs(data) {
             e
           );
         }
+        // Rejections for other tabs are expected (no content script there) —
+        // intentionally not logged.
       }
     })
   );

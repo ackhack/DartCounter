@@ -7,18 +7,39 @@
 'use strict';
 
 window.addEventListener('message', (event) => {
-  // Only accept throws relayed by our own service worker.
-  if (event.source !== navigator.serviceWorker.controller) return;
-
+  console.log('msg arrived');
+  // Accept throws relayed by our service worker. In Firefox the MessageEvent
+  // source for SW messages is not always === navigator.serviceWorker.controller
+  // (it can be null or a different instance), so also accept a same-origin
+  // ServiceWorker sender (or a null source, which page scripts cannot produce
+  // — their postMessage carries source === window).
+  const controller = navigator.serviceWorker.controller;
+  const src = event.source;
+  const fromOurSW =
+    src === controller ||
+    (event.origin === window.location.origin &&
+      src !== window &&
+      (src === null ||
+        (src && src.constructor && src.constructor.name === 'ServiceWorker')));
+  if (!fromOurSW) {
+    if (event.data && event.data.type === 'dartit-throw') {
+      console.warn(
+        '[dartit-bridge] page: dartit-throw rejected by source check — source:', src,
+        'controller:', controller, 'origin:', event.origin
+      );
+    }
+    return;
+  }
+console.log('msg arrived 2');
   const msg = event.data;
   if (!msg || msg.type !== 'dartit-throw') return;
-
+console.log('msg arrived 3');
   // Ignore throws when there's no live game to receive them.
   if (!state.gameStarted || state.gameOver) {
     console.log('[dartit-bridge] page: no active game, ignoring', msg.token);
     return;
   }
-
+console.log('msg arrived'); 4
   // In cricket only 15-20 (any multiplier) and bull are targetable, mirroring
   // the board which hides 1-14.
   if (isCricket()) {

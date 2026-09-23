@@ -32,21 +32,22 @@ dartit.net page
    `python3 -m http.server 8080` from the project root.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Click **Load Temporary Add-on…** and select this folder's `manifest.json`.
-4. (Re)load the DartCounter tab at `http://localhost:8080`.
+4. (Re)load the DartCounter tab (any port on `localhost` or `192.168.178.92`).
 5. Reload `https://dartit.net/...` so the content scripts attach.
 
 The add-on is temporary — it disappears when Firefox closes. Repeat steps 2–3 to
 reload it after editing (then reload both tabs again).
 
-## If a different port
+## Which tabs are targeted
 
-The add-on targets `http://localhost:8080`. The background broadcasts every
-throw to all tabs, so the only place the port matters is where the
-`dartcounter-content.js` content script gets injected. To use another port,
-change `http://localhost:8080/*` in `manifest.json` (both `host_permissions`
-and the `dartcounter-content.js` `matches`) and, for the useful warning only,
-the `http://localhost:8080` check in `background.js`. Then reload the add-on
-and the tab.
+The `dartcounter-content.js` content script — the only tab-side receiver — is
+injected into **any port** of `http://localhost/*` and
+`http://192.168.178.92/*`. The background still broadcasts every throw to all
+tabs; only the targeted tabs have a receiver, so the other sends fail harmlessly
+and stay silent. To target a different host or port, edit the
+`dartcounter-content.js` `matches` and `host_permissions` in `manifest.json`,
+and mirror the host in `isDartCounterTab()` in `background.js` (used only for
+the warning). Then reload the add-on and the tab.
 
 ## Tests
 

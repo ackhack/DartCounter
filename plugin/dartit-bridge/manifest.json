@@ -6,10 +6,12 @@
   "background": {
     "scripts": ["background.js"]
   },
+  "permissions": ["tabs"],
   "host_permissions": [
     "https://dartit.net/*",
     "https://vis.dartit.net/*",
-    "http://localhost:8080/*"
+    "http://localhost/*",
+    "http://192.168.178.92/*"
   ],
   "content_scripts": [
     {
@@ -24,7 +26,7 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["http://localhost:8080/*"],
+      "matches": ["http://localhost/*", "http://192.168.178.92/*"],
       "js": ["dartcounter-content.js"],
       "run_at": "document_idle"
     }

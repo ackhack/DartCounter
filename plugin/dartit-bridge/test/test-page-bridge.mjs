@@ -8,16 +8,21 @@ import vm from 'node:vm';
 const root = new URL('../../../', import.meta.url);
 const src = readFileSync(new URL('js/dartit-bridge.js', root), 'utf8');
 
+const ORIGIN = 'http://localhost:8080';
+
 function makeWorld(overrides = {}) {
   const calls = { apply: [], submit: 0 };
   let messageHandler = null;
 
   const controller = Symbol('sw-controller');
+  class ServiceWorker {}
   const sandbox = {
     console,
     Symbol,
+    ServiceWorker,
     navigator: { serviceWorker: { controller } },
     window: {
+      location: { origin: ORIGIN },
       addEventListener(type, fn) {
         if (type === 'message') messageHandler = fn;
       },
@@ -40,12 +45,13 @@ function makeWorld(overrides = {}) {
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
 
-  // Fire a message event as the site SW relay would (source = controller).
-  const fire = (data, source = controller) => {
-    messageHandler({ source, data });
+  // Fire a message event as the site SW relay would (source = controller,
+  // origin = page origin by default).
+  const fire = (data, source = controller, origin = ORIGIN) => {
+    messageHandler({ source, data, origin });
   };
 
-  return { fire, calls, controller, messageHandler, state: sandbox.state };
+  return { fire, calls, controller, messageHandler, state: sandbox.state, ServiceWorker, window: sandbox.window };
 }
 
 let failed = 0;
@@ -63,11 +69,39 @@ const check = (label, cond) => {
   check('X01 T11 -> submitScore called once', w.calls.submit === 1);
 }
 
-// 2. Non-controller source is ignored.
+// 2. Non-controller, non-SW source is ignored.
 {
   const w = makeWorld();
   w.fire({ type: 'dartit-throw', token: '20' }, 'not-the-sw');
   check('message from non-SW source ignored', w.calls.apply.length === 0 && w.calls.submit === 0);
+}
+
+// 2b. Null source (Firefox SW quirk) from same origin is accepted.
+{
+  const w = makeWorld();
+  w.fire({ type: 'dartit-throw', token: '20' }, null);
+  check('null-source same-origin message accepted', w.calls.apply.length === 1 && w.calls.submit === 1);
+}
+
+// 2c. A ServiceWorker sender (e.g. version-mismatched instance) is accepted.
+{
+  const w = makeWorld();
+  w.fire({ type: 'dartit-throw', token: '20' }, new w.ServiceWorker());
+  check('ServiceWorker-source message accepted', w.calls.apply.length === 1 && w.calls.submit === 1);
+}
+
+// 2d. Page-script postMessage (source === window) is rejected.
+{
+  const w = makeWorld();
+  w.fire({ type: 'dartit-throw', token: '20' }, w.window);
+  check('page-script (window source) message rejected', w.calls.apply.length === 0 && w.calls.submit === 0);
+}
+
+// 2e. Different origin is rejected even with a ServiceWorker sender.
+{
+  const w = makeWorld();
+  w.fire({ type: 'dartit-throw', token: '20' }, new w.ServiceWorker(), 'https://evil.example');
+  check('cross-origin ServiceWorker-source message rejected', w.calls.apply.length === 0 && w.calls.submit === 0);
 }
 
 // 3. Wrong type is ignored.
