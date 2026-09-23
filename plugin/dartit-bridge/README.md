@@ -53,12 +53,13 @@ and the tab.
 With a JavaScript runtime available (node):
 
 ```
-node plugin/dartit-bridge/test/test-parse-detect.mjs   # parseDetect + token round-trip
-node plugin/dartit-bridge/test/test-page-bridge.mjs    # page-side guards + dispatch
+node plugin/dartit-bridge/test/test-injected-guard.mjs  # drop empty/absent detect responses
+node plugin/dartit-bridge/test/test-parse-detect.mjs    # parseDetect + token round-trip
+node plugin/dartit-bridge/test/test-page-bridge.mjs     # page-side guards + dispatch
 ```
 
 These cover the pure-logic parts. The Firefox-specific hops (MAIN-world hook,
-runtime messaging, tab lookup, `reg.active.postMessage`) need a live browser.
+runtime messaging, tab broadcast, `reg.active.postMessage`) need a live browser.
 
 ## Debugging
 

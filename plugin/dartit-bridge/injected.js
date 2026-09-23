@@ -29,6 +29,22 @@
     return String(method || 'GET').toUpperCase() !== 'GET';
   }
 
+  // The detect endpoint can answer with an empty object or nothing at all.
+  // Only a non-empty plain object carries a throw, so drop everything else
+  // before it enters the extension chain.
+  function isMeaningful(data) {
+    const meaningful = (
+      data !== null &&
+      typeof data === 'object' &&
+      !Array.isArray(data) &&
+      Object.keys(data).length > 0
+    );
+    if (!meaningful) {
+      console.log('Not meaningful');
+    }
+    return meaningful;
+  }
+
   // --- fetch ---
   const origFetch = window.fetch;
   if (typeof origFetch === 'function') {
@@ -44,7 +60,13 @@
         promise
           .then((res) => {
             try {
-              res.clone().json().then(emit).catch(() => {});
+              res
+                .clone()
+                .json()
+                .then((data) => {
+                  if (isMeaningful(data)) emit(data);
+                })
+                .catch(() => {});
             } catch (e) {
               // not a readable response — skip
             }
@@ -69,9 +91,10 @@
     if (isDetect(this.__bridgeUrl) && isNonGet(this.__bridgeMethod)) {
       this.addEventListener('load', () => {
         try {
-          emit(JSON.parse(this.responseText));
+          const data = JSON.parse(this.responseText);
+          if (isMeaningful(data)) emit(data);
         } catch (e) {
-          // non-JSON body — skip
+          // empty or non-JSON body — skip
         }
       });
     }
