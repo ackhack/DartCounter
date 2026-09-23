@@ -40,10 +40,13 @@ reload it after editing (then reload both tabs again).
 
 ## If a different port
 
-The add-on targets `http://localhost:8080`. To use another port, change
-`http://localhost:8080/*` in both `manifest.json` (host_permissions and the
-content_scripts `matches`) and `background.js` (`DARTCOUNTER_URL`), then reload
-the add-on and the tab.
+The add-on targets `http://localhost:8080`. The background broadcasts every
+throw to all tabs, so the only place the port matters is where the
+`dartcounter-content.js` content script gets injected. To use another port,
+change `http://localhost:8080/*` in `manifest.json` (both `host_permissions`
+and the `dartcounter-content.js` `matches`) and, for the useful warning only,
+the `http://localhost:8080` check in `background.js`. Then reload the add-on
+and the tab.
 
 ## Tests
 
