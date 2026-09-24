@@ -1,5 +1,37 @@
 'use strict';
 
+// 1. Select the target element
+const targetElement = document.getElementById("dartit-bridge-count");
+
+if (targetElement) {
+  // 2. Create a MutationObserver instance
+  const observer = new MutationObserver((mutationsList, observer) => {
+    for (let mutation of mutationsList) {
+      // Check if the text content or character data changed
+      if (mutation.type === "childList" || mutation.type === "characterData") {
+        console.log("The innerText has changed to:", targetElement.innerText);
+        
+        applyDartItUpdate();
+      }
+    }
+  });
+
+  // 3. Configure the observer to watch for text and child changes
+  const config = { 
+    childList: true,      // Watches for adding/removing children (text nodes count as children)
+    subtree: true,        // Watches deep inside the element if text is wrapped in spans
+    characterData: true   // Watches directly for text changes
+  };
+
+  // 4. Start observing the target element
+  observer.observe(targetElement, config);
+
+  // Example: To stop observing later, you can call:
+  // observer.disconnect();
+} else {
+  console.warn("Element with ID 'dartit-bridge-count' not found.");
+}
+
 function applyDartItUpdate() {
   const dat = parseDetect(JSON.parse(document.getElementById("dartit-bridge-value").innerText));
   console.log('Received from DartIt ' + dat)
