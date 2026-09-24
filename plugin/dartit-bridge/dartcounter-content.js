@@ -9,27 +9,7 @@
   browser.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== 'dartit-detect') return;
 
-    const payload = { type: 'dartit-detect', data: message.data };
-
-    if (!('serviceWorker' in navigator)) {
-      console.warn('[dartit-bridge] this page has no serviceWorker support');
-      return;
-    }
-
-    navigator.serviceWorker
-      .ready
-      .then((reg) => {
-        if (reg && reg.active) {
-          reg.active.postMessage(payload);
-          console.log('[dartit-bridge] sent throw to site service worker');
-          console.log(payload)
-          console.log(message.data)
-        } else {
-          console.warn('[dartit-bridge] no active site service worker');
-        }
-      })
-      .catch((e) => {
-        console.warn('[dartit-bridge] could not reach site service worker:', e);
-      });
+    document.getElementById("dartit-bridge-count").innerText = parseInt(document.getElementById("dartit-bridge-count").innerText) + 1;
+    document.getElementById("dartit-bridge-value").innerText = JSON.stringify(message.data)
   });
 })();
