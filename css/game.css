@@ -99,17 +99,18 @@
   flex-direction: column;
   padding: 0.75rem;
   gap: 0.6rem;
-  overflow-y: auto;
   min-width: 0;
+  overflow: hidden;
 }
 
-/* Active Player Card */
+/* Active Player Card — pinned above the list, never scrolls with it */
 .active-player-card {
   background: var(--bg-card);
   border-radius: var(--radius);
   padding: 1rem;
   text-align: center;
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 /* Two-column body: left = cricket marks, right = score/throws */
@@ -287,10 +288,20 @@
 
 /* ===========================
    PLAYER CARDS (queue + per-player history)
-   Cards size to their content and sit in a centered, wrapping row;
-   the score panel scrolls when the rows outgrow it.
+   Only the list scrolls — the active player card above it stays pinned.
+   Cards size to their content and sit in a centered, wrapping row.
    =========================== */
+.players-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .players-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -308,9 +319,17 @@
   transition: border-color var(--transition);
 }
 
-/* Active player — the border color is set inline to the player's own color */
+/* Active player — --player-color is set inline to the player's own color */
 .player-card.active {
   border-width: 2px;
+  border-color: var(--player-color, var(--accent));
+}
+
+/* One-shot pulse when a player's turn starts */
+@keyframes card-focus-pulse {
+  0% { transform: scale(0.95); }
+  55% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
 
 .player-card-header {

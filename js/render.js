@@ -138,5 +138,7 @@ function renderPlayers() {
     `;
 
     container.appendChild(card);
+    if (isActive)
+      card.scrollIntoView({ block: "start", container: "nearest" });
   });
 }
