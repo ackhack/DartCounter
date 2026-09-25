@@ -32,8 +32,16 @@ if (targetElement) {
   console.warn("Element with ID 'dartit-bridge-count' not found.");
 }
 
+let lastDartItValue = "";
 function applyDartItUpdate() {
-  const dat = parseDetect(JSON.parse(document.getElementById("dartit-bridge-value").innerText));
+  let newVal = document.getElementById("dartit-bridge-value").innerText;
+  if (newVal === lastDartItValue){
+    console.log("Duplicate entry from DartIt")
+    return;
+  }
+  lastDartItValue = newVal;
+  
+  const dat = parseDetect(JSON.parse(newVal));
   console.log('Received from DartIt ' + dat)
   if (dat != null) {
     applyThrowToken(dat);

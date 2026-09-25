@@ -8,7 +8,6 @@ function init() {
   renderPlayerSuggestions();
   renderNameInputs(3);
   updateNameInputs();
-  tryRegisterSW();
 }
 
 init();
