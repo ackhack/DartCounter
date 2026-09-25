@@ -21,6 +21,6 @@ function isCricket() {
   return state.mode === 'cricket';
 }
 
-function cricketAllPlayersClosed() {
+function cricketAllPlayersClosed(value) {
   return state.players.every(p => (p.marks[value] || 0) >= CRICKET_TARGET_MARKS);
 }

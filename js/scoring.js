@@ -130,7 +130,7 @@ function submitScore(forcedMult) {
     state.currentPlayerIndex = nextIdx;
 
     //In Cricket if all players have closed, the game is practically over, we handle this here
-    if (isCricket() && cricketAllPlayersClosed()) {
+    if (isCricket() && CRICKET_NUMBERS.every(n => cricketAllPlayersClosed(n))) {
       cricketMultiplePlayerFinish();
       endGame();
       return;
@@ -189,7 +189,7 @@ function processCricketScore(player, value, multiplier) {
   if (value < 15) return { finished: false, scored };
 
   //only do scoring if not all players have closed the number
-  if (!cricketAllPlayersClosed()) {
+  if (!cricketAllPlayersClosed(value)) {
 
     // Score when hitting an already-closed target (4th hit onward) AND not all players have closed it
     const marksBefore = player.marks[value] || 0;
@@ -202,7 +202,7 @@ function processCricketScore(player, value, multiplier) {
       player.marks[value] = Math.min(newMarks, CRICKET_TARGET_MARKS);
 
       //if we scored more than 3 marks, the extra marks count as points if not all players have closed it
-      if (newMarks > CRICKET_TARGET_MARKS && !cricketAllPlayersClosed()) {
+      if (newMarks > CRICKET_TARGET_MARKS && !cricketAllPlayersClosed(value)) {
         const extraMarks = newMarks - CRICKET_TARGET_MARKS;
         scored = value * extraMarks;
         player.runs += scored;
