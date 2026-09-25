@@ -120,13 +120,13 @@ function renderPlayers() {
     // Last 5 completed turns of this player, newest first.
     // The in-progress turn is already visible in the big active player card.
     const turns = state.history.filter(h => h.playerId === p.id).slice(-5).reverse();
-    const historyHtml = turns.map(entry => `
+    const historyHtml = isCricket() ? '' : '<div class="player-history">' + turns.map(entry => `
       <div class="player-history-entry">
         <span class="player-history-round">R${entry.round}</span>
         <div class="player-history-throws">${entry.throws.map(t => `<span class="player-history-throw">${t}</span>`).join('')}</div>
         <span class="player-history-total">${entry.total > 0 ? entry.total : ''}</span>
       </div>
-    `).join('');
+    `).join('') + '</div>';
 
     card.innerHTML = `
       <div class="player-card-header">
@@ -134,7 +134,7 @@ function renderPlayers() {
         <span class="player-card-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
       </div>
       ${marksPreview}
-      <div class="player-history">${historyHtml}</div>
+      ${historyHtml}
     `;
 
     container.appendChild(card);
