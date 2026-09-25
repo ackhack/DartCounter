@@ -19,12 +19,8 @@ function undoLast() {
 
   const turn = state._currentPlayerTurn;
   const player = state.players[state.currentPlayerIndex];
-  const dartIndex = turn.throws.length -1;
-  const scored = turn._scoring[dartIndex];
-  const lastLabel = turn.throws.pop();
-  const lastValue = turn.values.pop();
 
-  revertPlayerStats(player, lastValue, lastLabel, scored);
+  revertPlayerStats(player, turn);
   state.throwCount = Math.max(0, state.throwCount - 1);
 
   // Clean up empty turn to prevent broken state on repeated undo
@@ -36,13 +32,21 @@ function undoLast() {
   renderGame();
 }
 
-function revertPlayerStats(player, value, throwLabel, scored) {
+function revertPlayerStats(player, turn) {
+  const dartIndex = turn.throws.length -1;
+  const scored = turn._scoring[dartIndex];
+  const throwLabel = turn.throws.pop();
+  const value = turn.values.pop();
+
   player.turns--;
   if (throwLabel && throwLabel.includes('BUST')) {
-    // Bust — everything was already reverted in processX01Score
-    return;
-  }
-  if (isX01()) {
+    console.log('undoing bust')
+    //subtract all scores from previous hits this turn, as they count now again.
+    turn.values.forEach(v => {
+      player.score -= v[2];
+      player.runs += v[2];
+    });
+  } else if (isX01()) {
     player.score += value[2];
     player.runs -= value[2];
     if (player.score > 0) {

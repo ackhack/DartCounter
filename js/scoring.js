@@ -103,10 +103,13 @@ function submitScore(forcedMult) {
 
     // Calculate turn total based on mode
     if (isX01()) {
-      // For X01, total excludes busted values
-      turnTotal = state._currentPlayerTurn.values.reduce(
-        (sum, val, i) => sum + (state._currentPlayerTurn.throws[i] && state._currentPlayerTurn.throws[i].includes('BUST') ? 0 : val[2]), 0
-      );
+      if (!state._currentPlayerTurn.throws.every(t => !t.includes('BUST'))) {
+        //if busted total is 0
+        turnTotal = 0;
+      } else {
+        // For X01, total excludes busted values
+        turnTotal = state._currentPlayerTurn.values.reduce((sum, val, _) => sum + val[2], 0);
+      }
     } else {
       // Cricket: only count points from darts that hit a scoring number
       turnTotal = state._currentPlayerTurn.values.reduce((sum, val, i) => {
