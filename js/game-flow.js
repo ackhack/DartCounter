@@ -69,7 +69,6 @@ function replayGame() {
 function initGame(players) {
   //cleanup last game
   $('#end-modal').classList.add('hidden');
-  clearGameState();
   clearInput();
 
   // Initialize players
@@ -124,7 +123,6 @@ function backToSetup() {
   $('#end-modal').classList.add('hidden');
   state.gameStarted = false;
   state.gameOver = false;
-  clearGameState();
   showScreen('setup');
 }
 

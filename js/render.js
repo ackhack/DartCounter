@@ -56,11 +56,11 @@ function renderGame() {
 
 function renderCricketMarks(player) {
   CRICKET_NUMBERS.forEach(n => {
-    updateMarkDisplay(`marks-${n}`, player.marks[n] || 0, false, n);
+    updateMarkDisplay(`marks-${n}`, player.marks[n] || 0, n);
   });
 }
 
-function updateMarkDisplay(elementId, marks, isBull, number) {
+function updateMarkDisplay(elementId, marks, number) {
   const el = $(`#${elementId}`);
   if (!el) return;
   const dotsEl = el.querySelector('.mark-dots');
@@ -68,12 +68,11 @@ function updateMarkDisplay(elementId, marks, isBull, number) {
 
   dotsEl.innerHTML = '';
   const closed = marks >= CRICKET_TARGET_MARKS;
-  const allPlayersClosed = state.players.every(p => (p.marks[number] || 0) >= CRICKET_TARGET_MARKS);
 
   for (let i = 0; i < CRICKET_TARGET_MARKS; i++) {
     const dot = document.createElement('span');
     dot.className = 'mark-dot';
-    if (allPlayersClosed) {
+    if (cricketAllPlayersClosed()) {
       dot.classList.add('closed-all');
     } else if (closed) {
       dot.classList.add('all-filled');
@@ -117,11 +116,10 @@ function renderQueue() {
       CRICKET_NUMBERS.forEach(n => {
         const m = p.marks[n] || 0;
         // Blue when every player has closed this number, like the mark-dots
-        const allPlayersClosed = state.players.every(pl => (pl.marks[n] || 0) >= CRICKET_TARGET_MARKS);
         const label = n === BULL_NUMBER ? 'B' : String(n);
         let dots = '';
         for (let d = 0; d < CRICKET_TARGET_MARKS; d++) {
-          const dotCls = allPlayersClosed ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
+          const dotCls = cricketAllPlayersClosed() ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
           dots += `<span class="queue-mark-dot ${dotCls}"></span>`;
         }
         marksPreview += `<span class="queue-mark">${label}${dots}</span>`;

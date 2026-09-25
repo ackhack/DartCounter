@@ -32,7 +32,6 @@ function undoLast() {
   }
 
   clearInput();
-  saveGameState();
   renderGame();
 }
 

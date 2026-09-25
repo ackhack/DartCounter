@@ -6,7 +6,6 @@
 function endGame() {
   state.gameOver = true;
   updateUndoButton();
-  clearGameState();
 
   // Determine results order
   const results = [...state.players].sort((a, b) => {

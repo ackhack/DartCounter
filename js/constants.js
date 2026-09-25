@@ -20,3 +20,7 @@ function isX01() {
 function isCricket() {
   return state.mode === 'cricket';
 }
+
+function cricketAllPlayersClosed() {
+  return state.players.every(p => (p.marks[value] || 0) >= CRICKET_TARGET_MARKS);
+}

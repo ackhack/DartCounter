@@ -16,13 +16,8 @@
   "content_scripts": [
     {
       "matches": ["https://dartit.net/*"],
-      "js": ["injected.js"],
+      "js": ["injected.js", "dartit-content.js"],
       "world": "MAIN",
-      "run_at": "document_start"
-    },
-    {
-      "matches": ["https://dartit.net/*"],
-      "js": ["dartit-content.js"],
       "run_at": "document_start"
     },
     {

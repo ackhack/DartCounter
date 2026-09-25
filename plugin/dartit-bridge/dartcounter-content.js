@@ -10,6 +10,7 @@
     if (!message || message.type !== 'dartit-detect') return;
 
     document.getElementById("dartit-bridge-value").innerText = JSON.stringify(message.data)
-    document.getElementById("dartit-bridge-count").innerText = parseInt(document.getElementById("dartit-bridge-count").innerText) + 1;
+    document.getElementById("dartit-bridge-count").innerText =
+      parseInt(document.getElementById("dartit-bridge-count").innerText) + 1;
   });
 })();

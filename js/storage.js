@@ -76,38 +76,6 @@ function saveStats() {
   }
 }
 
-function saveGameState() {
-  try {
-    localStorage.setItem(STORAGE_KEY_GAME, JSON.stringify(state));
-  } catch (e) {
-    console.warn('Failed to save game state:', e);
-  }
-}
-
-function loadGameState() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY_GAME);
-    if (data) {
-      const parsed = JSON.parse(data);
-      if (parsed && parsed.gameStarted && !parsed.gameOver) {
-        state = parsed;
-        return true;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load game state:', e);
-  }
-  return false;
-}
-
-function clearGameState() {
-  try {
-    localStorage.removeItem(STORAGE_KEY_GAME);
-  } catch (e) {
-    console.warn('Failed to clear game state:', e);
-  }
-}
-
 function emptyModeStats() {
   return {
     gamesPlayed: 0,

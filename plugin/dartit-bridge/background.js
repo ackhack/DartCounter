@@ -49,6 +49,7 @@ async function broadcastToAllTabs(data) {
   let delivered = 0;
   await Promise.all(
     tabs.map(async (tab) => {
+      if (!isDartCounterTab(tab.url)) return;
       try {
         console.log('[dartit-bridge] sending to tab ' + tab.id + " with url " + tab.url);
         await browser.tabs.sendMessage(tab.id, { type: 'dartit-detect', data: data });
@@ -57,16 +58,12 @@ async function broadcastToAllTabs(data) {
       } catch (e) {
         // Expected for tabs without our content script (or not reloaded after
         // the add-on was installed). Only warn if it looks like our tab.
-        if (isDartCounterTab(tab.url)) {
-          console.warn(
-            '[dartit-bridge] could not reach DartCounter tab',
-            tab.id,
-            '(reload the tab after installing/reloading the add-on):',
-            e
-          );
-        }
-        // Rejections for other tabs are expected (no content script there) —
-        // intentionally not logged.
+        console.warn(
+          '[dartit-bridge] could not reach DartCounter tab',
+          tab.id,
+          '(reload the tab after installing/reloading the add-on):',
+          e
+        );
       }
     })
   );
