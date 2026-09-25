@@ -58,7 +58,7 @@ function renderResultsModal(results) {
 
     el.innerHTML = `
       <div class="result-rank">${i + 1}</div>
-      <span class="result-name">${i === 0 ? '🏆 ' : ''}${p.name}</span>
+      <span class="result-name"${p.color ? ` style="color:${p.color}"` : ''}>${i === 0 ? '🏆 ' : ''}${p.name}</span>
       <div class="result-details">${details}</div>
     `;
 

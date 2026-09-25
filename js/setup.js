@@ -98,6 +98,19 @@ function renderPlayerSuggestions() {
   });
 }
 
+// Show the name's stored color live in the row (input text + number badge)
+// as soon as the user types or restores a known name.
+function applyRowColor(wrapper) {
+  const input = wrapper.querySelector('.name-input');
+  const badge = wrapper.querySelector('.player-number');
+  const color = playerColors[input.value.trim().toLowerCase()] || '';
+  input.style.color = color;
+  if (badge) {
+    badge.style.background = color;
+    badge.style.color = color ? '#0f0f1a' : '';
+  }
+}
+
 function createPlayerRow(i) {
   const wrapper = document.createElement('div');
   wrapper.className = 'name-input-wrapper';
@@ -107,6 +120,7 @@ function createPlayerRow(i) {
     <button class="remove-player-btn" title="Remove player">✕</button>
   `;
   wrapper.querySelector('.remove-player-btn').addEventListener('click', () => removePlayerRow(wrapper));
+  wrapper.querySelector('.name-input').addEventListener('input', () => applyRowColor(wrapper));
   return wrapper;
 }
 
@@ -161,5 +175,6 @@ function updateNameInputs() {
     if (state.players[i]) {
       input.value = state.players[i].name;
     }
+    applyRowColor(input.closest('.name-input-wrapper'));
   });
 }

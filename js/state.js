@@ -24,6 +24,7 @@ let input = {
 };
 
 let stats = loadStats();
+let playerColors = loadPlayerColors();
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);

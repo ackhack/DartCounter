@@ -31,17 +31,35 @@ function startFirstGame() {
     seen.add(key);
   }
 
+  // Assign each name a color: keep the stored one, otherwise take the first
+  // palette color no one else in this game uses (keeps all players distinct;
+  // >16 players wraps around). A stored color that collides with another
+  // player this game gets reassigned and the map is updated.
+  const usedColors = new Set();
+  const roster = names.map((name, i) => {
+    const key = name.toLowerCase();
+    let color = playerColors[key];
+    if (!color || usedColors.has(color)) {
+      color = PLAYER_COLORS.find(c => !usedColors.has(c)) || PLAYER_COLORS[i % PLAYER_COLORS.length];
+      playerColors[key] = color;
+    }
+    usedColors.add(color);
+    return {
+      id: i,
+      name,
+      color,
+      score: state.x01Start,
+      turns: 0,
+      runs: 0,
+      marks: {},
+      finished: false,
+      currentGamePosition: 0
+    };
+  });
+  savePlayerColors(playerColors);
+
   //start game with default order
-  initGame(names.map((name, i) => ({
-    id: i,
-    name,
-    score: state.x01Start,
-    turns: 0,
-    runs: 0,
-    marks: {},
-    finished: false,
-    currentGamePosition: 0
-  })));
+  initGame(roster);
 }
 
 function replayGame() {
@@ -53,10 +71,12 @@ function replayGame() {
     return b.lastGamePosition - a.lastGamePosition;
   });
 
-  // Manually start game with same settings but reordered players
+  // Manually start game with same settings but reordered players.
+  // Color follows the player, not the position, across the reshuffle.
   initGame(names.map((p, i) => ({
     id: i,
     name: p.name,
+    color: p.color,
     score: state.x01Start,
     turns: 0,
     runs: 0,

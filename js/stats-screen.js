@@ -24,7 +24,7 @@ function renderStatsScreen() {
         .join('');
       el.innerHTML = `
         <div class="stats-player-header">
-          <div class="stats-player-name">${entry.name}</div>
+          <div class="stats-player-name"${playerColors[entry.key] ? ` style="color:${playerColors[entry.key]}"` : ''}>${entry.name}</div>
           <button class="remove-player-btn stats-reset-btn">✕</button>
         </div>
         ${cards}
@@ -58,16 +58,20 @@ function renderRecentGames() {
   }
 
   el.classList.remove('hidden');
+  const coloredName = (name) => {
+    const color = playerColors[name.toLowerCase()];
+    return color ? `<span style="color:${color}">${name}</span>` : name;
+  };
   const rows = stats.games.slice().reverse().map(g => {
     const date = new Date(g.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const modeLabel = g.mode === 'x01' ? `X01 ${g.x01Start}` : 'Cricket';
-    const scores = g.results.map(r => `${r.name} ${r.score}`).join(' · ');
+    const scores = g.results.map(r => `${coloredName(r.name)} ${r.score}`).join(' · ');
     return `
       <div class="recent-game">
         <div class="recent-game-top">
           <span class="recent-game-date">${date}</span>
           <span class="recent-game-mode">${modeLabel}</span>
-          <span class="recent-game-winner">${g.winner} wins</span>
+          <span class="recent-game-winner">${coloredName(g.winner)} wins</span>
         </div>
         <div class="recent-game-scores">${scores}</div>
       </div>

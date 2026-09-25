@@ -68,6 +68,24 @@ function savePlayerNames() {
   }
 }
 
+function loadPlayerColors() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_COLORS);
+    const parsed = data ? JSON.parse(data) : {};
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePlayerColors(colors) {
+  try {
+    localStorage.setItem(STORAGE_KEY_COLORS, JSON.stringify(colors));
+  } catch (e) {
+    console.warn('Failed to save player colors:', e);
+  }
+}
+
 function saveStats() {
   try {
     localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats));

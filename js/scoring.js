@@ -56,6 +56,7 @@ function submitScore(forcedMult) {
       round: state.round,
       playerId: player.id,
       name: player.name,
+      color: player.color,
       throws: [],
       values: [],
       _scoring: [],

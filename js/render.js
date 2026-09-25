@@ -15,7 +15,9 @@ function renderGame() {
   $('#finish-count').textContent = remaining > 1 ? `${remaining} Players left` : '';
 
   // Active player name
-  $('#active-player-name').textContent = player.name;
+  const activeNameEl = $('#active-player-name');
+  activeNameEl.textContent = player.name;
+  activeNameEl.style.color = player.color || '';
 
   // Active player points
   if (isX01()) {
@@ -129,8 +131,8 @@ function renderQueue() {
 
     el.innerHTML = `
       <div class="queue-player-info">
-        <span class="queue-position">${i + 1}</span>
-        <span class="queue-player-name">${p.name}</span>
+        <span class="queue-position"${p.color ? ` style="background:${p.color};color:#0f0f1a"` : ''}>${i + 1}</span>
+        <span class="queue-player-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}</span>
       </div>
       ${marksPreview}
       <span class="queue-player-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
@@ -188,7 +190,7 @@ function createHistoryEntryEl(entry, noAnim = false) {
   el.className = noAnim ? 'history-entry no-anim' : 'history-entry';
   el.innerHTML = `
     <span class="history-round">R${entry.round}</span>
-    <span class="history-player">${entry.name}</span>
+    <span class="history-player"${entry.color ? ` style="color:${entry.color}"` : ''}>${entry.name}</span>
     <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
     <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
   `;
