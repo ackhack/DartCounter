@@ -10,6 +10,7 @@ function undoLast() {
   if (state._currentPlayerTurn == null || state._currentPlayerTurn.throws.length == 0) {
     if (state.history.length === 0) return;
     state._currentPlayerTurn = state.history.pop();
+    state.throwCount = SCORES_PER_TURN;
     state.currentPlayerIndex--;
     if (state.currentPlayerIndex < 0) {
       state.currentPlayerIndex = state.players.length - 1;
@@ -36,11 +37,11 @@ function undoLast() {
 }
 
 function revertPlayerStats(player, value, throwLabel, scored) {
+  player.turns--;
   if (throwLabel && throwLabel.includes('BUST')) {
     // Bust — everything was already reverted in processX01Score
     return;
   }
-  player.turns--;
   if (isX01()) {
     player.score += value[2];
     player.runs -= value[2];
