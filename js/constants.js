@@ -10,23 +10,26 @@ const STORAGE_KEY_COLORS = 'dartcounter_player_colors';
 
 // 16 visually distinct hues, all light enough to read as text on the dark
 // navy background. Assignment is stable per player name (see startFirstGame).
+// Ordered so the top colors are maximally distinct from each other — the
+// usual 2–4 player games get the most different hues, similar hues only
+// appear together in 8+ player games.
 const PLAYER_COLORS = [
-  '#f87171', // red
-  '#fb923c', // orange
-  '#fbbf24', // amber
-  '#facc15', // yellow
-  '#a3e635', // lime
-  '#4ade80', // green
-  '#34d399', // emerald
-  '#2dd4bf', // teal
-  '#22d3ee', // cyan
-  '#38bdf8', // sky
   '#60a5fa', // blue
-  '#818cf8', // indigo
-  '#a78bfa', // violet
-  '#c084fc', // purple
+  '#4ade80', // green
+  '#facc15', // yellow
+  '#f87171', // red
   '#e879f9', // fuchsia
-  '#f472b6'  // pink
+  '#a78bfa', // violet
+  '#a3e635', // lime
+  '#f472b6', // pink
+  '#fb923c', // orange
+  '#2dd4bf', // teal
+  '#38bdf8', // sky
+  '#fbbf24', // amber
+  '#22d3ee', // cyan
+  '#34d399', // emerald
+  '#818cf8', // indigo
+  '#c084fc'  // purple
 ];
 const CRICKET_NUMBERS = [15, 16, 17, 18, 19, 20, 25];
 const BULL_NUMBER = 25;
