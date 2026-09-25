@@ -148,8 +148,13 @@ function submitScore(forcedMult) {
 
   //In Cricket if all players have closed, the game is practically over, we handle this here
   if (isCricket() && CRICKET_NUMBERS.every(n => cricketAllPlayersClosed(n))) {
-    cricketMultiplePlayerFinish();
-    endGame();
+    const thisCount = state.throwCount;
+    setTimeout(() => {
+      if (thisCount == state.throwCount) {
+        cricketMultiplePlayerFinish();
+        endGame();
+      }
+    }, 3000);
     return;
   }
 
@@ -159,7 +164,12 @@ function submitScore(forcedMult) {
     if (p.finished) playersFinished++;
   });
   if (playersFinished + 1 >= state.players.length) {
-    endGame();
+    const thisCount = state.throwCount;
+    setTimeout(() => {
+      if (thisCount == state.throwCount) {
+        endGame();
+      }
+    }, 3000);
     return;
   }
 
