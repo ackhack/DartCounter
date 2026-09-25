@@ -6,10 +6,10 @@
 function submitScore(forcedMult) {
   let mult = forcedMult !== undefined ? forcedMult : input.multiplier;
   if (state.gameOver) return;
-
   const player = state.players[state.currentPlayerIndex];
   if (player.finished) return;//idk why we would hit this
 
+  //#region Scoring
   let throwValue = 0;
   let throwLabel = '';
 
@@ -37,6 +37,10 @@ function submitScore(forcedMult) {
     // No valid input — bail
     return;
   }
+
+  // Clear input for next throw
+  clearInput();
+
   console.log(throwValue);
   console.log(mult);
   console.log(throwLabel);
@@ -95,70 +99,80 @@ function submitScore(forcedMult) {
       state.throwCount = SCORES_PER_TURN;
     }
   }
+  //#endregion
 
-  // Check if turn is complete (3 scores)
-  if (state.throwCount >= SCORES_PER_TURN) {
-    // Complete the turn — add to history
-    let turnTotal;
+  //render new game state
+  renderGame();
 
-    // Calculate turn total based on mode
-    if (isX01()) {
-      if (!state._currentPlayerTurn.throws.every(t => !t.includes('BUST'))) {
-        //if busted total is 0
-        turnTotal = 0;
-      } else {
-        // For X01, total excludes busted values
-        turnTotal = state._currentPlayerTurn.values.reduce((sum, val, _) => sum + val[2], 0);
-      }
-    } else {
-      // Cricket: only count points from darts that hit a scoring number
-      turnTotal = state._currentPlayerTurn.values.reduce((sum, val, i) => {
-        if (state._currentPlayerTurn._scoring && state._currentPlayerTurn._scoring[i] > 0) return sum + state._currentPlayerTurn._scoring[i];
-        return sum;
-      }, 0);
-    }
-
-    // Update history, reset current turn
-    state._currentPlayerTurn.total = turnTotal;
-    state.history.push(state._currentPlayerTurn);
-    state._currentPlayerTurn = null;
-
-    // Move to next player
-    let nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
-    let safety = 0;
-    while (state.players[nextIdx].finished && safety < state.players.length) {
-      nextIdx = (nextIdx + 1) % state.players.length;
-      safety++;
-    }
-    state.currentPlayerIndex = nextIdx;
-
-    //In Cricket if all players have closed, the game is practically over, we handle this here
-    if (isCricket() && CRICKET_NUMBERS.every(n => cricketAllPlayersClosed(n))) {
-      cricketMultiplePlayerFinish();
-      endGame();
-      return;
-    }
-
-    // Check game over: all but one finished
-    let playersFinished = 0;
-    state.players.forEach(p => {
-      if (p.finished) playersFinished++;
-    });
-    if (playersFinished + 1 >= state.players.length) {
-      endGame();
-      return;
-    }
-
-    // Reset for next player's turn
-    state.throwCount = 0;
-    state.round++;
+  // Check if turn is not complete (3 scores)
+  if (state.throwCount < SCORES_PER_TURN) {
+    // Go to next throw and render
+    return;
   }
 
-  // Clear input for next throw
-  clearInput();
+  //#region History Entry
 
-  // Save state and render
-  renderGame();
+  // Calculate turn total based on mode
+  let turnTotal;
+  if (isX01()) {
+    if (!state._currentPlayerTurn.throws.every(t => !t.includes('BUST'))) {
+      //if busted total is 0
+      turnTotal = 0;
+    } else {
+      // For X01, total excludes busted values
+      turnTotal = state._currentPlayerTurn.values.reduce((sum, val, _) => sum + val[2], 0);
+    }
+  } else {
+    // Cricket: only count points from darts that hit a scoring number
+    turnTotal = state._currentPlayerTurn.values.reduce((sum, val, i) => {
+      if (state._currentPlayerTurn._scoring && state._currentPlayerTurn._scoring[i] > 0) return sum + state._currentPlayerTurn._scoring[i];
+      return sum;
+    }, 0);
+  }
+
+  // Update history, reset current turn
+  state._currentPlayerTurn.total = turnTotal;
+  state.history.push(state._currentPlayerTurn);
+  //#endregion
+
+  state._currentPlayerTurn = null;
+
+  // Move to next player
+  let nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
+  let safety = 0;
+  while (state.players[nextIdx].finished && safety < state.players.length) {
+    nextIdx = (nextIdx + 1) % state.players.length;
+    safety++;
+  }
+  state.currentPlayerIndex = nextIdx;
+
+  //In Cricket if all players have closed, the game is practically over, we handle this here
+  if (isCricket() && CRICKET_NUMBERS.every(n => cricketAllPlayersClosed(n))) {
+    cricketMultiplePlayerFinish();
+    endGame();
+    return;
+  }
+
+  // Check game over: all but one finished
+  let playersFinished = 0;
+  state.players.forEach(p => {
+    if (p.finished) playersFinished++;
+  });
+  if (playersFinished + 1 >= state.players.length) {
+    endGame();
+    return;
+  }
+
+  // Reset for next player's turn
+  state.throwCount = 0;
+  state.round++;
+  //show last dart for 3 secs, then render next player
+  setTimeout(() => {
+    //only render new state if nothing change, if something changed, renderGame will be called there
+    if (state.throwCount == 0) {
+      renderGame();
+    }
+  }, 3000);
 }
 
 function processX01Score(player, value) {
