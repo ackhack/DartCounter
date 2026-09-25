@@ -49,11 +49,8 @@ function renderGame() {
   if (isCricket())
     renderCricketMarks(player);
 
-  // Queue
-  renderQueue();
-
-  // History
-  renderHistory();
+  // Player cards
+  renderPlayers();
 }
 
 function renderCricketMarks(player) {
@@ -85,36 +82,27 @@ function updateMarkDisplay(elementId, marks, number) {
   }
 }
 
-function renderQueue() {
-  const container = $('#queue-list');
+function renderPlayers() {
+  const container = $('#players-list');
   container.innerHTML = '';
 
-  // Get players who are not the current player, ordered by who's next
+  // Every player as a card, in fixed play order (the order they were added).
   const activeIdx = state.currentPlayerIndex;
-  const queuePlayers = [];
 
-  for (let i = 1; i < state.players.length; i++) {
-    const idx = (activeIdx + i) % state.players.length;
-    const p = state.players[idx];
-    queuePlayers.push({ ...p, nextInQueue: i === 1 });
-  }
+  state.players.forEach((p, i) => {
+    const isActive = i === activeIdx;
 
-  queuePlayers.forEach((p, i) => {
-    if (p.finished) return;
-
-    const el = document.createElement('div');
-    el.className = 'queue-player';
-
-    let scoreText;
-    if (isX01()) {
-      scoreText = p.score;
-    } else {
-      scoreText = `${p.runs} points`;
+    const card = document.createElement('div');
+    card.className = 'player-card' + (isActive ? ' active' : '');
+    if (isActive && p.color) {
+      card.style.borderColor = p.color;
     }
+
+    const scoreText = isX01() ? p.score : `${p.runs} points`;
 
     let marksPreview = '';
     if (isCricket() && !p.finished) {
-      marksPreview = '<div class="queue-marks-preview">';
+      marksPreview = '<div class="player-marks-preview">';
       CRICKET_NUMBERS.forEach(n => {
         const m = p.marks[n] || 0;
         // Blue when every player has closed this number, like the mark-dots
@@ -122,77 +110,33 @@ function renderQueue() {
         let dots = '';
         for (let d = 0; d < CRICKET_TARGET_MARKS; d++) {
           const dotCls = cricketAllPlayersClosed(n) ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
-          dots += `<span class="queue-mark-dot ${dotCls}"></span>`;
+          dots += `<span class="player-mark-dot ${dotCls}"></span>`;
         }
-        marksPreview += `<span class="queue-mark">${label}${dots}</span>`;
+        marksPreview += `<span class="player-mark">${label}${dots}</span>`;
       });
       marksPreview += '</div>';
     }
 
-    el.innerHTML = `
-      <div class="queue-player-info">
-        <span class="queue-position"${p.color ? ` style="background:${p.color};color:#0f0f1a"` : ''}>${i + 1}</span>
-        <span class="queue-player-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}</span>
+    // Last 5 completed turns of this player, newest first.
+    // The in-progress turn is already visible in the big active player card.
+    const turns = state.history.filter(h => h.playerId === p.id).slice(-5).reverse();
+    const historyHtml = turns.map(entry => `
+      <div class="player-history-entry">
+        <span class="player-history-round">R${entry.round}</span>
+        <div class="player-history-throws">${entry.throws.map(t => `<span class="player-history-throw">${t}</span>`).join('')}</div>
+        <span class="player-history-total">${entry.total > 0 ? entry.total : ''}</span>
+      </div>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="player-card-header">
+        <span class="player-card-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}</span>
+        <span class="player-card-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
       </div>
       ${marksPreview}
-      <span class="queue-player-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
+      <div class="player-history">${historyHtml}</div>
     `;
 
-    container.appendChild(el);
+    container.appendChild(card);
   });
-}
-
-function renderHistory() {
-  const container = $('#history-list');
-
-  // Show last 20 history entries, newest first
-  const entries = state.history.slice(-20).reverse();
-
-  if (entries.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
-  // If no entries yet, build all
-  if (container.children.length === 0) {
-    entries.forEach(entry => container.appendChild(createHistoryEntryEl(entry)));
-  } else {
-    const existingTotal = container.children.length;
-    const newCount = entries.length;
-
-    if (newCount > existingTotal) {
-      // A new entry was added — it's the first in the reversed array
-      // Insert at the top (newest first)
-      container.prepend(createHistoryEntryEl(entries[0]));
-    } else if (newCount < existingTotal) {
-      // Count decreased (undo removed entry) — rebuild without animation
-      container.innerHTML = '';
-      entries.forEach(entry => container.appendChild(createHistoryEntryEl(entry, true)));
-    }
-    // If count is the same, values changed (undo modified a turn) — update in place
-    else {
-      entries.forEach((entry, i) => {
-        const el = container.children[i];
-        el.querySelector('.history-total').textContent = entry.total > 0 ? entry.total : '';
-        el.querySelector('.history-throws').innerHTML = entry.throws.map(t =>
-          `<span class="history-throw">${t}</span>`
-        ).join('');
-      });
-    }
-  }
-
-  // Auto-scroll to top (newest entry)
-  container.scrollTop = 0;
-}
-
-function createHistoryEntryEl(entry, noAnim = false) {
-  const el = document.createElement('div');
-  el.className = noAnim ? 'history-entry no-anim' : 'history-entry';
-  el.innerHTML = `
-    <span class="history-round">R${entry.round}</span>
-    <span class="history-player"${entry.color ? ` style="color:${entry.color}"` : ''}>${entry.name}</span>
-    <div class="history-throws">${entry.throws.map(t => `<span class="history-throw">${t}</span>`).join('')}</div>
-    <span class="history-total">${entry.total > 0 ? entry.total : ''}</span>
-  `;
-  return el;
 }
