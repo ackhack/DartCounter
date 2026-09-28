@@ -46,6 +46,12 @@ function isCricket() {
   return state.mode === 'cricket';
 }
 
+// Generated placeholder names ("Player 1", "Player 2", ...) are anonymous:
+// they must not land in the persistent stats nor prefill the setup screen.
+function isDefaultPlayerName(name) {
+  return /^Player \d+$/.test(name);
+}
+
 function cricketAllPlayersClosed(value) {
   return state.players.every(p => (p.marks[value] || 0) >= CRICKET_TARGET_MARKS);
 }

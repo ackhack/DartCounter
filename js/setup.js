@@ -172,8 +172,10 @@ function updateRemoveButtons() {
 function updateNameInputs() {
   const inputs = $$('.name-input');
   inputs.forEach((input, i) => {
-    if (state.players[i]) {
-      input.value = state.players[i].name;
+    const prev = state.players[i];
+    // Don't prefill anonymous "Player N" names from the last game.
+    if (prev && !isDefaultPlayerName(prev.name)) {
+      input.value = prev.name;
     }
     applyRowColor(input.closest('.name-input-wrapper'));
   });

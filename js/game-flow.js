@@ -12,7 +12,7 @@ function startFirstGame() {
     const name = inputs[i].value.trim() || `Player ${i + 1}`;
     names.push(name);
 
-    if (name && !/^Player \d+$/.test(name) && !playerNames.includes(name) && playerNames.length < 20) {
+    if (name && !isDefaultPlayerName(name) && !playerNames.includes(name) && playerNames.length < 20) {
       playerNames.push(name);
       savePlayerNames();
       renderPlayerSuggestions();

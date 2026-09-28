@@ -15,25 +15,30 @@ function endGame() {
   // Mark winner
   results[0].isWinner = true;
 
-  // Update stats
+  // Update stats — skip anonymous "Player N" names so placeholder games
+  // don't create per-player stat entries.
   results.forEach((p, i) => {
     p.lastGamePosition = i;
     p.currentGamePosition = 0;
-    updatePlayerStats(p, i === 0);
+    if (!isDefaultPlayerName(p.name)) {
+      updatePlayerStats(p, i === 0);
+    }
   });
 
-  // Save to history
-  saveGameToHistory({
-    winner: results[0].name,
-    results: results.map((p, i) => ({
-      position: i + 1,
-      name: p.name,
-      score: isX01() ? p.score : p.runs,
-      runs: p.runs,
-      turns: p.turns,
-      finished: p.finished
-    }))
-  });
+  // Save to history — skip entirely when no player used a real name.
+  if (results.some(p => !isDefaultPlayerName(p.name))) {
+    saveGameToHistory({
+      winner: results[0].name,
+      results: results.map((p, i) => ({
+        position: i + 1,
+        name: p.name,
+        score: isX01() ? p.score : p.runs,
+        runs: p.runs,
+        turns: p.turns,
+        finished: p.finished
+      }))
+    });
+  }
 
   // Render results modal
   renderResultsModal(results);
