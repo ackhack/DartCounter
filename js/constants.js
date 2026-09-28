@@ -34,6 +34,10 @@ const PLAYER_COLORS = [
 const CRICKET_NUMBERS = [15, 16, 17, 18, 19, 20, 25];
 const BULL_NUMBER = 25;
 const CRICKET_TARGET_MARKS = 3;
+// Shanghai 21: every number 1-20 in order, then the bull as the 21st target.
+const SHANGHAI_TARGETS = [];
+for (let i = 1; i <= 20; i++) SHANGHAI_TARGETS.push(i);
+SHANGHAI_TARGETS.push(BULL_NUMBER);
 const MIN_PLAYERS = 2;
 const SCORES_PER_TURN = 3;
 const MAX_X01_TURN = 180;
@@ -44,6 +48,14 @@ function isX01() {
 
 function isCricket() {
   return state.mode === 'cricket';
+}
+
+function isShanghai() {
+  return state.mode === 'shanghai';
+}
+
+function currentShanghaiTarget() {
+  return SHANGHAI_TARGETS[state.shanghaiIndex];
 }
 
 // Generated placeholder names ("Player 1", "Player 2", ...) are anonymous:

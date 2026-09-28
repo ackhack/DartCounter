@@ -4,7 +4,7 @@
 'use strict';
 
 let state = {
-  mode: 'x01',           // 'x01' or 'cricket'
+  mode: 'x01',           // 'x01', 'cricket' or 'shanghai'
   x01Start: 301,
   players: [],           // [{id, name, score, turns, runs, marks, finished}]
   currentPlayerIndex: 0,
@@ -13,7 +13,9 @@ let state = {
   history: [],           // [{round, playerId, name, throws, total}]
   gameStarted: false,
   gameOver: false,
-  _currentPlayerTurn: null  // transient: tracks in-progress 3-dart turn
+  _currentPlayerTurn: null,  // transient: tracks in-progress 3-dart turn
+  shanghaiIndex: 0,      // 0-20: current target in SHANGHAI_TARGETS
+  shanghaiTurnsAtNumber: 0 // completed turns at the current shanghai target
 };
 
 let input = {

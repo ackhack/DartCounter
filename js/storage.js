@@ -25,7 +25,8 @@ function loadStats() {
               totalDarts: entry.totalTurns || 0,
               bestScore: entry.bestScore || 0
             },
-            cricket: emptyModeStats()
+            cricket: emptyModeStats(),
+            shanghai: emptyModeStats()
           };
           delete entry.gamesPlayed;
           delete entry.wins;
@@ -156,9 +157,12 @@ function countBullDarts(player) {
 function updatePlayerStats(player, isWinner) {
   const key = player.name.toLowerCase();
   if (!stats.players[key]) {
-    stats.players[key] = { name: player.name, modes: { x01: emptyModeStats(), cricket: emptyModeStats() } };
+    stats.players[key] = { name: player.name, modes: { x01: emptyModeStats(), cricket: emptyModeStats(), shanghai: emptyModeStats() } };
   }
-  const m = stats.players[key].modes[state.mode];
+  // Lazily backfill modes added after the player's stats were first created.
+  const modes = stats.players[key].modes;
+  if (!modes.shanghai) modes.shanghai = emptyModeStats();
+  const m = modes[state.mode];
   const entries = state.history.filter(h => h.playerId === player.id);
 
   m.gamesPlayed++;

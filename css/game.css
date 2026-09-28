@@ -583,6 +583,19 @@
   color: var(--on-warn);
 }
 
+/* Shanghai — the current target is the only number that scores this round;
+   everything else is dimmed so the throwing player sees it at a glance. */
+.num-btn.current,
+.special-btn.current {
+  background: var(--accent);
+  color: white;
+}
+
+.num-btn.dimmed,
+.special-btn.dimmed {
+  opacity: 0.4;
+}
+
 .special-btn.bull {
   border: 2px solid var(--success);
 }

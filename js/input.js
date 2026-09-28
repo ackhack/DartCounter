@@ -70,13 +70,16 @@ function clearInput() {
 }
 
 function updateMultiplierPreview() {
-  // X01 only — in cricket the multiplier adds marks, not a score preview.
+  // X01 previews every number; Shanghai only the current target (the only
+  // one that scores); in cricket the multiplier adds marks, not a score.
   // A pending multiplier (>1) only exists right after Double/Triple is
   // pressed, before a number, so this is the state the preview describes.
-  const show = isX01() && input.multiplier > 1;
+  const mult = input.multiplier;
   $$('.num-btn').forEach(btn => {
+    const num = parseInt(btn.dataset.num);
+    const show = mult > 1 && (isX01() || (isShanghai() && num === currentShanghaiTarget()));
     if (show) {
-      btn.dataset.multPreview = String(parseInt(btn.dataset.num) * input.multiplier);
+      btn.dataset.multPreview = String(num * mult);
     } else {
       delete btn.dataset.multPreview;
     }

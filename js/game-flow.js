@@ -94,6 +94,10 @@ function initGame(players) {
   // Initialize players
   state.players = players;
 
+  // Initialize shanghai target progression
+  state.shanghaiIndex = 0;
+  state.shanghaiTurnsAtNumber = 0;
+
   // Initialize cricket marks
   const cricketSection = $('#cricket-marks-section');
   if (isCricket()) {
@@ -126,8 +130,8 @@ function initGame(players) {
   // Cricket: single-column player cards (X01 keeps the multi-column grid).
   $('#players-list').classList.toggle('cricket-list', isCricket());
 
-  // Quick-turn presets are X01 checkout combos — hide them in cricket.
-  $('#preset-section').style.display = isCricket() ? 'none' : '';
+  // Quick-turn presets are X01 checkout combos — hide them in the other modes.
+  $('#preset-section').style.display = (isCricket() || isShanghai()) ? 'none' : '';
 
   state.currentPlayerIndex = 0;
   state.throwCount = 0;

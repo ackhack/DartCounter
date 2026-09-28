@@ -9,10 +9,17 @@ function renderGame() {
   const player = state.players[state.currentPlayerIndex];
 
   // Header info
-  $('#round-label').textContent = `Round ${state.round}`;
-  const finishedCount = state.players.filter(p => p.finished).length;
-  const remaining = state.players.length - finishedCount;
-  $('#finish-count').textContent = remaining > 1 ? `${remaining} Players left` : '';
+  if (isShanghai()) {
+    // The "round" is the current target, not a turn counter.
+    const reached = Math.min(state.shanghaiIndex + 1, SHANGHAI_TARGETS.length);
+    $('#round-label').textContent = `Number ${reached} / ${SHANGHAI_TARGETS.length}`;
+    $('#finish-count').textContent = '';
+  } else {
+    $('#round-label').textContent = `Round ${state.round}`;
+    const finishedCount = state.players.filter(p => p.finished).length;
+    const remaining = state.players.length - finishedCount;
+    $('#finish-count').textContent = remaining > 1 ? `${remaining} Players left` : '';
+  }
 
   // Active player name — the card's border/glow color comes from the same
   // player color; fall back to the neutral border when there is none.
@@ -50,8 +57,38 @@ function renderGame() {
   if (isCricket())
     renderCricketMarks(player);
 
+  renderShanghaiNumberHighlight();
+
   // Player cards
   renderPlayers();
+}
+
+// Shanghai: highlight the one number that scores this round and dim the rest.
+// Non-Shanghai modes get a clean grid (classes removed).
+function renderShanghaiNumberHighlight() {
+  $$('.num-btn').forEach(btn => btn.classList.remove('current', 'dimmed'));
+  $$('.special-btn').forEach(btn => btn.classList.remove('current', 'dimmed'));
+  if (!isShanghai() || state.shanghaiIndex >= SHANGHAI_TARGETS.length) return;
+
+  const target = currentShanghaiTarget();
+  if (target === BULL_NUMBER) {
+    // Bull round — bull/bulls-eye are the scoring buttons.
+    $$('.num-btn').forEach(btn => btn.classList.add('dimmed'));
+    $$('.special-btn').forEach(btn => {
+      const s = btn.dataset.special;
+      if (s === 'bull' || s === 'bulleye') btn.classList.add('current');
+      // MISS stays normal — it is always throwable.
+    });
+  } else {
+    $$('.num-btn').forEach(btn => {
+      const isCurrent = parseInt(btn.dataset.num) === target;
+      btn.classList.toggle('current', isCurrent);
+      btn.classList.toggle('dimmed', !isCurrent);
+    });
+    $$('.special-btn').forEach(btn => {
+      if (btn.dataset.special !== '0') btn.classList.add('dimmed');
+    });
+  }
 }
 
 function renderCricketMarks(player) {

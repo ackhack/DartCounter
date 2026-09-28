@@ -80,7 +80,8 @@ function setupEventListeners() {
 }
 
 function updateSetupVisibility() {
-  $('#game-mode-label').textContent = isX01() ? 'X01' : 'Cricket';
+  const modeNames = { x01: 'X01', cricket: 'Cricket', shanghai: 'Shanghai' };
+  $('#game-mode-label').textContent = modeNames[state.mode] || state.mode;
 
   const x01Opts = $('#x01-options');
   if (x01Opts) {

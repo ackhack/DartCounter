@@ -18,7 +18,7 @@ function renderStatsScreen() {
     entries.forEach(entry => {
       const el = document.createElement('div');
       el.className = 'stats-player';
-      const cards = ['x01', 'cricket']
+      const cards = ['x01', 'cricket', 'shanghai']
         .map(mode => renderModeCard(entry, mode))
         .filter(Boolean)
         .join('');
@@ -64,7 +64,7 @@ function renderRecentGames() {
   };
   const rows = stats.games.slice().reverse().map(g => {
     const date = new Date(g.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    const modeLabel = g.mode === 'x01' ? `X01 ${g.x01Start}` : 'Cricket';
+    const modeLabel = g.mode === 'x01' ? `X01 ${g.x01Start}` : g.mode === 'shanghai' ? 'Shanghai' : 'Cricket';
     const scores = g.results.map(r => `${coloredName(r.name)} ${r.score}`).join(' · ');
     return `
       <div class="recent-game">
@@ -81,13 +81,16 @@ function renderRecentGames() {
 }
 
 function totalGames(entry) {
-  return (entry.modes.x01 ? entry.modes.x01.gamesPlayed : 0) + (entry.modes.cricket ? entry.modes.cricket.gamesPlayed : 0);
+  return (entry.modes.x01 ? entry.modes.x01.gamesPlayed : 0)
+    + (entry.modes.cricket ? entry.modes.cricket.gamesPlayed : 0)
+    + (entry.modes.shanghai ? entry.modes.shanghai.gamesPlayed : 0);
 }
 
 function renderModeCard(entry, mode) {
   const m = entry.modes[mode];
   if (!m || m.gamesPlayed === 0) return '';
   const isX01 = mode === 'x01';
+  const modeTitles = { x01: 'X01', cricket: 'Cricket', shanghai: 'Shanghai' };
   const cards = [
     { value: m.gamesPlayed, label: 'Games' },
     { value: m.wins, label: 'Wins' },
@@ -96,7 +99,7 @@ function renderModeCard(entry, mode) {
     { value: m.avgPerGame, label: 'Avg / Game' },
     isX01
       ? { value: m.bestTurn, label: 'Best Turn' }
-      : { value: m.bestTurn, label: 'Best Leg' },
+      : { value: m.bestTurn, label: mode === 'cricket' ? 'Best Leg' : 'Best Turn' },
     isX01
       ? { value: m.bestScore, label: 'Best Finish' }
       : { value: m.bullDarts, label: 'Bull Darts' },
@@ -106,7 +109,7 @@ function renderModeCard(entry, mode) {
   ];
   return `
     <div class="stats-mode-card">
-      <h3 class="stats-mode-title">${isX01 ? 'X01' : 'Cricket'}</h3>
+      <h3 class="stats-mode-title">${modeTitles[mode] || mode}</h3>
       <div class="stats-grid stats-grid-4">
         ${cards.map(c => `<div class="stat-card"><div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div></div>`).join('')}
       </div>

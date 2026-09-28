@@ -15,6 +15,12 @@ function undoLast() {
     if (state.currentPlayerIndex < 0) {
       state.currentPlayerIndex = state.players.length - 1;
     }
+    // Shanghai: the target may have advanced after this turn completed —
+    // restore the one it was played on.
+    if (isShanghai()) {
+      state.shanghaiIndex = state._currentPlayerTurn.shanghaiIndex;
+      state.shanghaiTurnsAtNumber = state.history.filter(h => h.shanghaiIndex === state.shanghaiIndex).length;
+    }
   }
 
   const turn = state._currentPlayerTurn;
@@ -69,6 +75,17 @@ function revertPlayerStats(player, turn) {
     // Unfinish if not all marks are closed
     const stillClosed = CRICKET_NUMBERS.every(n => (player.marks[n] || 0) >= CRICKET_TARGET_MARKS);
     if (!stillClosed) {
+      player.finished = false;
+      player.currentGamePosition = 0;
+    }
+  } else if (isShanghai()) {
+    // Only subtract runs if this dart was scoring
+    if (scored > 0) {
+      player.runs -= scored;
+    }
+
+    // Undoing the winning dart of an instant win un-finishes the player.
+    if (player.finished) {
       player.finished = false;
       player.currentGamePosition = 0;
     }

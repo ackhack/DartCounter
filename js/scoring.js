@@ -61,17 +61,22 @@ function submitScore(forcedMult) {
       values: [],
       _scoring: [],
       startingScore: player.score,
-      startingRuns: player.runs
+      startingRuns: player.runs,
+      // Shanghai: which target this turn was played on (undo restores it)
+      shanghaiIndex: state.shanghaiIndex
     };
   }
 
   // Process score based on mode
   let bust = false;
   let cricketResult = isCricket() ? null : undefined;
+  let shanghaiResult = isShanghai() ? null : undefined;
   if (isX01()) {
     bust = processX01Score(player, throwValue * mult);
   } else if (isCricket()) {
     cricketResult = processCricketScore(player, throwValue, mult);
+  } else if (isShanghai()) {
+    shanghaiResult = processShanghaiScore(player, throwValue, mult);
   }
 
   // Update the current turn object with the throw result
@@ -87,16 +92,18 @@ function submitScore(forcedMult) {
       state.throwCount++;
     }
   } else {
-    //Track if this dart scored points (closed a number in cricket)
-    if (isCricket() && cricketResult) {
-      state._currentPlayerTurn._scoring[state.throwCount - 1] = cricketResult.scored;
-      console.log("" + state.throwCount + " " + cricketResult.scored)
+    //Track if this dart scored points (closed a number in cricket, hit the
+    //current target in shanghai)
+    const scoredResult = cricketResult || shanghaiResult;
+    if (scoredResult) {
+      state._currentPlayerTurn._scoring[state.throwCount - 1] = scoredResult.scored;
+      console.log("" + state.throwCount + " " + scoredResult.scored)
     } else {
       state._currentPlayerTurn._scoring[state.throwCount - 1] = 0;
     }
 
     // If player finished mid-turn, end the turn immediately
-    if (cricketResult?.finished || (isX01() && player.finished)) {
+    if (cricketResult?.finished || shanghaiResult?.finished || (isX01() && player.finished)) {
       state.throwCount = SCORES_PER_TURN;
     }
   }
@@ -124,7 +131,7 @@ function submitScore(forcedMult) {
       turnTotal = state._currentPlayerTurn.values.reduce((sum, val, _) => sum + val[2], 0);
     }
   } else {
-    // Cricket: only count points from darts that hit a scoring number
+    // Cricket/Shanghai: only count points from darts that hit a scoring number
     turnTotal = state._currentPlayerTurn.values.reduce((sum, val, i) => {
       if (state._currentPlayerTurn._scoring && state._currentPlayerTurn._scoring[i] > 0) return sum + state._currentPlayerTurn._scoring[i];
       return sum;
@@ -138,6 +145,26 @@ function submitScore(forcedMult) {
 
   state._currentPlayerTurn = null;
 
+  // Shanghai: once every player has thrown at the current target, advance to
+  // the next one. After the bull the game is over — rank by points.
+  if (isShanghai()) {
+    state.shanghaiTurnsAtNumber++;
+    if (state.shanghaiTurnsAtNumber >= state.players.length) {
+      state.shanghaiIndex++;
+      state.shanghaiTurnsAtNumber = 0;
+      if (state.shanghaiIndex >= SHANGHAI_TARGETS.length) {
+        shanghaiFinalRanking();
+        const thisCount = state.throwCount;
+        setTimeout(() => {
+          if (thisCount == state.throwCount) {
+            endGame();
+          }
+        }, 3000);
+        return;
+      }
+    }
+  }
+
   // Move to next player
   let nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
   let safety = 0;
@@ -146,6 +173,18 @@ function submitScore(forcedMult) {
     safety++;
   }
   state.currentPlayerIndex = nextIdx;
+
+  // Shanghai: an instant win ends the game (the winner is the only finished
+  // player, so the generic check below would miss 3+ player games).
+  if (isShanghai() && state.players.some(p => p.finished)) {
+    const thisCount = state.throwCount;
+    setTimeout(() => {
+      if (thisCount == state.throwCount) {
+        endGame();
+      }
+    }, 3000);
+    return;
+  }
 
   //In Cricket if all players have closed, the game is practically over, we handle this here
   if (isCricket() && CRICKET_NUMBERS.every(n => cricketAllPlayersClosed(n))) {
@@ -267,4 +306,55 @@ function cricketMultiplePlayerFinish() {
       }
     });
   } while (anyFinished);
+}
+
+function processShanghaiScore(player, value, multiplier) {
+  let scored = 0;
+  const current = currentShanghaiTarget();
+
+  // Only the current target scores (bull round: bull 25, bulls-eye 50) —
+  // darts on any other number are worth nothing this turn.
+  if (value === current) {
+    scored = value * multiplier;
+    player.runs += scored;
+  }
+
+  // Instant win: single + double + triple of the current target in this
+  // turn, in any order. The bull has no triple ring, so the last round is
+  // never winnable.
+  if (current !== BULL_NUMBER && shanghaiWinCombo(value, multiplier, current)) {
+    player.finished = true;
+    // Higher currentGamePosition = better (endGame sorts descending).
+    player.currentGamePosition = state.players.length;
+    // Rank the other players by points for the results list (ties share a
+    // position, like shanghaiFinalRanking).
+    state.players.filter(p => p !== player).forEach(p => {
+      p.currentGamePosition = state.players.filter(o => o !== player && o.runs < p.runs).length + 1;
+    });
+    return { finished: true, scored };
+  }
+  return { finished: false, scored };
+}
+
+// True if this turn's darts on the current target (those already thrown plus
+// the dart being scored) include a single, a double and a triple.
+function shanghaiWinCombo(value, multiplier, current) {
+  const mults = new Set();
+  const turn = state._currentPlayerTurn;
+  if (turn) {
+    for (const v of turn.values) {
+      if (v[0] === current) mults.add(v[1]);
+    }
+  }
+  if (value === current) mults.add(multiplier);
+  return mults.has(1) && mults.has(2) && mults.has(3);
+}
+
+// Game end after the bull round: rank by points, most points wins. Ties share
+// a position (like cricket's simultaneous finish) — endGame()'s descending
+// sort then crowns the first of them.
+function shanghaiFinalRanking() {
+  state.players.forEach(p => {
+    p.currentGamePosition = state.players.filter(o => o.runs < p.runs).length + 1;
+  });
 }

@@ -6,10 +6,11 @@ A fast, share-the-screen dart scoreboard. Built as a static web app — no build
 
 - **X01** (301 / 501 / 701) — instant scoring: tap a number and the dart is in. Bust detection reverts the turn.
 - **Cricket** — 15–20 + bull, 3 marks to close, points from the 4th hit, simultaneous finishes handled.
+- **Shanghai (21)** — 1 → 20 → bull; only the current number scores (single/double/triple = 1×/2×/3×), single + double + triple in one turn wins instantly, and after the bull the most points takes it.
 - **2–8+ players** — names persisted for quick re-selection, each player gets a stable, distinct color.
 - **Quick turns** — one-tap presets (`T20 20 20`, `MISS MISS MISS`, common 20-20 combos).
 - **Undo** — per-dart, including busts and cricket marks.
-- **Per-player stats** — games, wins, 3-dart averages (per turn/per game), best turn, checkout %, bull darts, win rate — tracked **separately for X01 and Cricket**, plus the last 50 games.
+- **Per-player stats** — games, wins, 3-dart averages (per turn/per game), best turn, checkout %, bull darts, win rate — tracked **separately for X01, Cricket and Shanghai**, plus the last 50 games.
 - **Replay** — one tap to re-run the game with the previous winner starting last.
 - **DartIt auto-scoring** (optional) — a Chrome extension forwards every dart detected on [dartit.net](https://dartit.net) straight into the scoreboard.
 

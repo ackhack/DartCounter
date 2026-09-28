@@ -56,6 +56,9 @@ function renderResultsModal(results) {
     if (isX01()) {
       details = `<span>${p.finished ? 'Finished' : 'Remaining: ' + p.score}</span>
                  <span>${p.runs} points | ${p.turns} turns</span>`;
+    } else if (isShanghai()) {
+      details = `<span>${p.finished ? '🏆 Instant win' : 'Finished'}</span>
+                 <span>${p.runs} points | ${p.turns} darts</span>`;
     } else {
       details = `<span>${p.finished ? '✓ Closed' : 'In progress'}</span>
                  <span>${p.runs} points | ${p.turns} turns</span>`;
@@ -84,6 +87,12 @@ function renderResultsModal(results) {
   });
   const overallBestTurn = Math.max(...Object.values(bestTurns), 0);
 
+  // In Shanghai the "rounds" stat is how far the targets got (a full game
+  // reaches 21; an instant win stops earlier).
+  const roundsValue = isShanghai()
+    ? Math.min(state.shanghaiIndex + 1, SHANGHAI_TARGETS.length)
+    : state.round;
+
   $('#history-summary').innerHTML = `
     <div class="history-summary">
       <h3>Game Stats</h3>
@@ -93,8 +102,8 @@ function renderResultsModal(results) {
           <div class="stat-label">Players</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">${state.round}</div>
-          <div class="stat-label">Rounds</div>
+          <div class="stat-value">${roundsValue}</div>
+          <div class="stat-label">${isShanghai() ? 'Numbers' : 'Rounds'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">${avgRuns}</div>
