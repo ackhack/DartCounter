@@ -90,6 +90,8 @@ function renderPlayers() {
   const activeIdx = state.currentPlayerIndex;
 
   state.players.forEach((p, i) => {
+    if (p.finished) return;
+    
     const isActive = i === activeIdx;
 
     const card = document.createElement('div');
