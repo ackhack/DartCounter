@@ -1,83 +1,66 @@
 # 🎯 Dart Counter
 
-A fast, offline-friendly web app for scoring darts games. Built with plain HTML, CSS, and vanilla JavaScript — no frameworks, no build step. Installable as a PWA and works offline.
+A fast, share-the-screen dart scoreboard. Built as a static web app — no build step, no dependencies. Big tap-friendly UI, dark theme, works in any modern browser (great on tablets in the dart pub).
 
 ## Features
 
-- **Two game modes**
-  - **X01** — 301 / 501 / 701, count down to zero with bust and checkout handling
-  - **Cricket** — close 15–20 + bull, then rack up points
-- **2 to many players** — add or remove players freely, with name autocomplete from previous games
-- **One-tap scoring** — tap a number or special button and the dart scores instantly; no submit button
-  - Single / Double / Triple multipliers, Bull, BullsEye, and Miss
-  - Quick-turn presets (e.g. `T20 20 20`) for common X01 turns
-- **Undo** — take back the last dart, even across turn boundaries
-- **Live game view** — active player, throw slots, player queue, cricket marks board, and turn history
-- **Resume after reload** — in-progress games are saved and restored automatically
-- **Player stats** — per-player, per-mode aggregates (averages, best turn, checkout %, bull darts, win rate) plus recent game results
-- **Offline & installable** — service worker caches the whole app; add to home screen on mobile or desktop
+- **X01** (301 / 501 / 701) — instant scoring: tap a number and the dart is in. Bust detection reverts the turn.
+- **Cricket** — 15–20 + bull, 3 marks to close, points from the 4th hit, simultaneous finishes handled.
+- **2–8+ players** — names persisted for quick re-selection, each player gets a stable, distinct color.
+- **Quick turns** — one-tap presets (`T20 20 20`, `MISS MISS MISS`, common 20-20 combos).
+- **Undo** — per-dart, including busts and cricket marks.
+- **Per-player stats** — games, wins, 3-dart averages (per turn/per game), best turn, checkout %, bull darts, win rate — tracked **separately for X01 and Cricket**, plus the last 50 games.
+- **Replay** — one tap to re-run the game with the previous winner starting last.
+- **DartIt auto-scoring** (optional) — a Chrome extension forwards every dart detected on [dartit.net](https://dartit.net) straight into the scoreboard.
 
-## Game Modes
+## Run it
 
-### X01
-
-Start from 301, 501, or 701 and throw darts to count down to exactly zero.
-
-- **Bust** — if your score goes below zero, the turn reverts to its starting score and the remaining darts count as misses.
-- **Checkout** — landing on exactly zero finishes you.
-- The game ends when all but one player have finished; remaining players are ranked by finish order.
-
-### Cricket
-
-Close the numbers **15, 16, 17, 18, 19, 20, and bull (B)** by hitting each three times.
-
-- Once a number is closed, further hits on it score points (value × multiplier).
-- A player finishes when all numbers are closed **and** they have the most points (ties finish together).
-- The keypad only shows 15–20 + bull in this mode.
-
-## Running Locally
-
-The app is a static site, but it must be served over HTTP (not opened via `file://`) so the service worker can register. From the project root:
+No build. Serve the folder with any static file server:
 
 ```bash
-python3 -m http.server 8000
-# then open http://localhost:8000
+python3 -m http.server 8080
 ```
 
-or
+Then open <http://localhost:8080/>. (Opening `index.html` directly also works for basic play.)
 
-```bash
-npx serve .
-# then open http://localhost:3000
+## DartIt Bridge (optional auto-scoring)
+
+The included Chrome extension captures dartit.net's camera detections and auto-enters each dart.
+
+1. Open `chrome://extensions` and enable **Developer mode**.
+2. Click **Load unpacked** and select the `plugin/dartit-bridge/` folder.
+3. Serve DartCounter from `http://localhost/...` (or `http://192.168.178.92/...` — the dev LAN IP in the manifest; add your host to `host_permissions` in `plugin/dartit-bridge/manifest.json` if different).
+4. Keep a DartCounter tab open on the game screen. On a dartit.net tab, throw a dart — it appears in the scoreboard automatically.
+
+Only recognized throws are scored (numbers 1–20 with single/double/triple, bull, bullseye, miss); anything unrecognised is ignored rather than guessed.
+
+## Usage
+
+1. **Setup screen** — pick mode, starting score (X01), number of players, enter names, **Start Game**.
+2. **Game screen** — tap a number to score a dart; use **Double/Triple** before a number for 2×/3×; **Bull** / **BullsEye** / **MISS** for specials. **Undo** reverts the last dart; **Next** misses out the rest of the turn. **End** ends the game early.
+3. **Game over** — results, game stats, **Play Again** (replay) or **Back to Setup**.
+4. **Player Stats** — from the setup screen; per-mode aggregates and recent games.
+
+## Project structure
+
+```
+index.html            Single page: setup / game / stats screens + end modal
+css/                  base, setup, game, modal, stats styles
+js/
+  constants.js        Storage keys, colors, game constants
+  storage.js          localStorage, stats schema + migration
+  state.js            Global state, input, DOM helpers
+  setup.js            Setup screen logic
+  game-flow.js        Start / replay / init / navigation
+  input.js            On-screen input, throw tokens, presets
+  undo.js             Per-dart undo
+  scoring.js          X01 & cricket scoring, busts, finishes
+  render.js           Game screen rendering
+  stats-screen.js     Stats screen
+  end-game.js         Results, stats update
+  dartit-bridge.js    App side of the DartIt bridge
+  main.js             init()
+plugin/dartit-bridge/ Chrome extension (MV3) for dartit.net auto-scoring
 ```
 
-## Installing as a PWA
-
-When the app is served over HTTP(S), the browser will offer to **install** it (or "Add to Home Screen" on mobile). Once installed, it launches as a standalone app and keeps working offline — all game data is stored in the browser's local storage on the device.
-
-## Project Structure
-
-```
-├── index.html            # Single page: setup / stats / game screens + results modal
-├── manifest.json         # PWA manifest
-├── service-worker.js     # Offline caching (cache-first, versioned)
-├── css/
-│   ├── base.css          # Shared styles, reset, buttons
-│   ├── setup.css         # Setup screen
-│   ├── game.css          # Game screen
-│   ├── modal.css         # Game-over modal
-│   └── stats.css         # Stats screen
-└── js/
-    ├── constants.js      # Storage keys & game constants
-    ├── storage.js        # localStorage persistence & stats
-    ├── state.js          # Game state & DOM references
-    ├── setup.js          # Event listeners & setup screen
-    ├── game-flow.js      # Start / replay / reset flow
-    ├── input.js          # Dart input & quick-turn presets
-    ├── undo.js           # Undo logic
-    ├── scoring.js        # X01 & Cricket scoring rules
-    ├── render.js         # Game screen rendering
-    ├── stats-screen.js   # Stats screen rendering
-    ├── end-game.js       # Results & game-over modal
-    └── main.js           # Initialization & service-worker registration
-```
+Plain scripts with shared globals, loaded in dependency order by `index.html` — no modules, no bundler.

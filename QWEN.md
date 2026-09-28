@@ -1,121 +1,94 @@
-# QWEN.md — Dart Counter
-
-Instructional context for working on this codebase.
+# QWEN.md
 
 ## Project Overview
 
-**Dart Counter** is an installable Progressive Web App (PWA) for scoring darts games. It supports two game modes — **X01** (301/501/701, count-down to zero) and **Cricket** (close 15–20 + bull, then rack up points) — for 2 to many players. It tracks per-player, per-mode statistics and recent game history, and lets you resume an in-progress game after a reload.
+DartCounter is a static, dependency-free web app for scoring dart games, designed for shared-screen play (big UI, dark navy theme). It supports two game modes:
 
-It is a **pure static site**: plain HTML + CSS + vanilla JavaScript. There is **no framework, no build step, no bundler, and no package manager / dependency list**. Everything runs directly in the browser, and offline capability comes from a service worker that caches all assets.
+- **X01** (301/501/701): countdown to zero; bust (overshoot or landing on 0) reverts to the turn's starting score.
+- **Cricket**: hit 3 marks on 15–20 and the bull (25) to close; points from the 4th hit onward; first player to close everything while leading on points wins (ties finish simultaneously).
 
-## Tech Stack
+There is no build system, no package manager, no module system — plain ES5-style scripts with `'use strict'`, shared globals, loaded in dependency order by `index.html`. A companion Chrome extension (`plugin/dartit-bridge/`) auto-scores darts from the dartit.net camera service.
 
-- **HTML/CSS** — single `index.html` with three full-page "screens" (setup, stats, game) shown/hidden via a `.active` class, plus a game-over modal.
-- **Vanilla JS (ES2020+)** — no modules/`import`; all files share one global namespace. `'use strict'` at the top of every JS file.
-- **Service Worker + Web App Manifest** — offline PWA (cache-first strategy).
-- **localStorage** — persistence for player names, stats, and in-progress game state.
+## Running
 
-## Running the App
-
-There is no build. It must be **served over HTTP(S)** — do not open `index.html` via `file://`, because the service worker is registered against absolute paths (`/index.html`, `/js/...`) and only works on a proper origin (localhost qualifies).
-
-From the project root, any static server works, e.g.:
+No build step. Serve the directory with any static file server and open `index.html`:
 
 ```bash
-python3 -m http.server 8000
-# then open http://localhost:8000
-```
-or
-```bash
-npx serve .
-# then open http://localhost:3000
+python3 -m http.server 8080    # then http://localhost:8080/
 ```
 
-> **No tests, linter, or type-checker are configured.** There is no `package.json`, no test runner, no CI. Verify changes by loading the app in a browser and playing a game.
+- Opening `index.html` directly via `file://` also works, but the DartIt plugin only matches `http://localhost/*` and `http://192.168.178.92/*` (LAN IP of the dev machine), so for the bridge the app must be served over one of those hosts.
+- **DartIt bridge**: load `plugin/dartit-bridge/` as an unpacked extension in Chrome (Manifest V3). While the user throws on dartit.net, each detected dart is forwarded to the open DartCounter tab and scored automatically.
+- `index.html` links `manifest.json` (PWA), but no such file exists in the repo root — only `plugin/dartit-bridge/manifest.json` does. Treat the missing root manifest as a known loose end, not a working feature.
 
-### Service-worker caching gotcha
+## Verification
 
-`service-worker.js` uses a versioned cache (`dartcounter-v13`) that caches every listed asset on `install`. After editing an asset, **bump `CACHE_NAME`** (and keep the `ASSETS` array in sync with any added/renamed files) so the new version is activated; otherwise a hard refresh is needed to clear the stale cache.
+- No tests, linter, or type checker are configured.
+- Node.js is available on this machine — use `node --check <file>` for JS syntax validation of edited files.
+- No working headless browser exists on this machine (Firefox headless hangs). For visual/UI changes, rely on `node --check`, careful static review, and ask the user to eyeball the app in their already-running browser.
 
-## Project Structure
+## Architecture
 
-```
-DartCounter/
-├── index.html            # Single page: setup / stats / game screens + end-game modal. Defines JS load order (bottom).
-├── manifest.json         # PWA manifest (name, icons, standalone, portrait).
-├── service-worker.js     # Offline cache (cache-first), versioned cache name.
-├── icon-192.png, icon-512.png, icon-512.svg   # PWA / favicon icons.
-├── css/
-│   ├── base.css          # Reset, layout primitives, shared components (buttons, screens).
-│   ├── setup.css         # Setup screen.
-│   ├── game.css          # Game screen (score panel, input panel, cricket marks, queue, history).
-│   ├── modal.css         # Game-over modal.
-│   └── stats.css         # Stats screen.
-└── js/                   # One file per concern. Load order in index.html matters (see below).
-    ├── constants.js      # Storage keys, game constants, isX01()/isCricket() helpers.
-    ├── storage.js        # localStorage load/save; stats model; legacy data migration.
-    ├── state.js          # Global `state`, `input`, `stats`, DOM refs, $/$$ helpers, `screens`.
-    ├── setup.js          # Event-listener wiring; setup screen; player name rows.
-    ├── game-flow.js      # startFirstGame / replayGame / initGame / backToSetup / showScreen.
-    ├── input.js          # Number/multiplier/special selection; instant scoring; presets; skip.
-    ├── undo.js           # undoLast() — revert the most recent dart.
-    ├── scoring.js        # submitScore() (core turn logic) + X01 & Cricket scoring.
-    ├── render.js         # renderGame() — active player, throws, cricket marks, queue, history.
-    ├── stats-screen.js   # Renders the Player Stats screen from `stats`.
-    ├── end-game.js       # endGame() + results modal.
-    └── main.js           # init() — wire listeners, seed UI, register service worker.
-```
+### File map
 
-### JS load order (bottom of `index.html`)
-
-Files share globals and depend on each other, so order is load-bearing. `constants.js` → `storage.js` → `state.js` (defines `state`/`input`/`$`/`$$`/`screens`) must come first; `main.js` (which calls `init()`) is last. When adding a new script, insert it **before** `main.js` and after any file it depends on, and **add its path to the `ASSETS` array** in `service-worker.js`.
-
-## Architecture & Data Flow
-
-- **Single global `state` object** (`state.js`) is the source of truth for a game: `mode`, `x01Start`, `players[]`, `currentPlayerIndex`, `throwCount`, `round`, `history[]`, `gameStarted`, `gameOver`, and a transient `_currentPlayerTurn` (the in-progress 3-dart turn before it's committed to `history`).
-- **State-driven rendering**: the pattern is *mutate `state`, then `saveGameState()` + `renderGame()`*. There is no reactive framework; `render.js` rebuilds the relevant DOM from `state` on each call.
-- **Instant scoring**: pressing a number or a special button immediately submits that dart (there is no "submit" button). `selectNumber()` / `selectSpecial()` in `input.js` call `submitScore()`.
-- **`submitScore()`** (`scoring.js`) is the heart of the game: it resolves the dart value, applies mode-specific scoring, tracks the in-progress turn, handles busts/finishes, commits the turn to `history`, advances the current player, and detects game over.
-- **Undo** (`undo.js`) does **not** keep a snapshot stack. It pops the last throw from `_currentPlayerTurn` (or the last committed `history` entry) and manually reverts the affected player's `score`/`runs`/`marks`. Because of this, `storage.js` derives checkout stats *from history* so undo can't skew them.
-
-### Global helpers (defined once, used everywhere)
-
-- `$` / `$$` — `document.querySelector` / `querySelectorAll` shorthands (`state.js`).
-- `isX01()` / `isCricket()` — mode checks (`constants.js`).
-- `screens` — map of the three screen elements for `showScreen()`.
-
-## Game Modes & Rules
-
-- **X01**: start at 301/501/701; subtract dart values; **bust** = score goes below 0 (turn reverts to its starting score, remaining darts count as misses); **finish** = exactly 0. Game ends when all but one player have finished (or one player finishes last). Multipliers: Single/Double/Triple; Bull = 25, BullsEye (inner) = 50.
-- **Cricket**: close numbers 15–20 and bull (25) by hitting each **3 times** (`CRICKET_TARGET_MARKS`). After a number is closed, further hits score points (value × multiplier, capped so the number can't be over-closed). A player finishes when all numbers are closed **and** they have the most (or tied-most) points; `cricketMultiplePlayerFinish()` finishes any co-leading players together.
-- **Quick-turn presets** (X01 only) let you enter a full 3-dart turn in one tap (e.g. `T20 20 20`); each dart is still individually undoable.
-
-## Persistence (localStorage)
-
-Keys (see `constants.js`):
-
-| Key | Content |
+| File | Role |
 |---|---|
-| `dartcounter_player_names` | Array of previously used player names (for autocomplete), capped at 20. |
-| `dartcounter_stats` | `{ players: { <lowercaseName>: { name, modes: { x01, cricket } } }, games: [...] }`. Per-mode aggregates (games, wins, runs, darts, best turn, checkout %, bull darts, averages). Recent games capped at 50. |
-| `dartcounter_game` | Serialized in-progress `state`. On load, `loadGameState()` restores it **only** if `gameStarted && !gameOver`, so a reload resumes the game. Cleared on new game / end game / back-to-setup. |
+| `index.html` | Single page: 3 screens (setup / game / stats) + end-game modal. Script load order at the bottom matters — it IS the dependency graph. |
+| `css/base.css` | Theme, shared layout, screen switching (`.screen.active`). |
+| `css/setup.css` | Setup screen styling. |
+| `css/game.css` | Game screen: active-player card, cricket marks board, player cards, number grid. |
+| `css/modal.css` | End-game modal. |
+| `css/stats.css` | Stats screen. |
+| `js/constants.js` | Storage keys, 16-color `PLAYER_COLORS` palette (ordered most-distinct-first), cricket constants (`CRICKET_NUMBERS`, `BULL_NUMBER = 25`, `CRICKET_TARGET_MARKS = 3`), `SCORES_PER_TURN = 3`, `MAX_X01_TURN = 180`, `isX01()`/`isCricket()`. |
+| `js/storage.js` | All `localStorage` I/O, stats schema + legacy migration, derived checkout stats, game-history persistence (capped at 50 games). |
+| `js/state.js` | Global `state`, `input`, `stats`, `playerColors`, `playerNames`; `$`/`$$` DOM helpers; `screens` map. |
+| `js/setup.js` | Setup screen: mode/starting-score/player-count selection, name inputs with saved-name `<datalist>`, event listeners. |
+| `js/game-flow.js` | `startFirstGame` (name validation, color assignment, roster build), `replayGame` (reshuffles so last game's winner starts last), `initGame`, `backToSetup`, `showScreen`. |
+| `js/input.js` | On-screen input: **instant scoring** — pressing a number scores that dart immediately (pending multiplier is consumed and reset to 1). `applyThrowToken(token)` turns tokens (`T20`, `D20`, `20`, `Bull`, `BE`, `0`) into input state; `submitPresetTurn` and `skipToNextPlayer` reuse the normal scoring path. |
+| `js/undo.js` | Per-dart undo: `undoLast` + `revertPlayerStats`, including bust restoration and cricket mark removal. |
+| `js/scoring.js` | Core: `submitScore(forcedMult)`, `processX01Score` (bust/finish), `processCricketScore`, `cricketPlayerFinished`, `cricketMultiplePlayerFinish`. |
+| `js/render.js` | `renderGame` — active-player card, throw slots, cricket mark dots, player cards with last-5-turn history. |
+| `js/stats-screen.js` | Stats screen: per-player, per-mode aggregates; recent-games list. |
+| `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. |
+| `js/dartit-bridge.js` | App side of the bridge: `MutationObserver` on `#dartit-bridge-count` triggers `applyDartItUpdate` → `parseDetect` (raw dartit response → throw token) → `applyThrowToken` + `submitScore`. Duplicate values are dropped. |
+| `js/main.js` | `init()` — wires event listeners, renders name suggestions/inputs. |
 
-`storage.js` also performs **one-time migrations** of legacy stat shapes (flat per-player entries → per-mode structure) and repairs corrupt `bestTurn` values. Be aware that `saveGameState()` serializes `state` *including* the transient `_currentPlayerTurn`.
+### State model (`js/state.js`)
 
-## Development Conventions
+- `state.players[]` — `{id, name, color, score, runs, turns, marks{}, finished, currentGamePosition, lastGamePosition?}`. Fixed play order; finished players are skipped on turn advance.
+- `state.throwCount` (0–2 within a turn) and `state._currentPlayerTurn` — the **transient in-progress turn** (`{round, playerId, name, color, throws[], values[], _scoring[], startingScore, startingRuns, total?}`). `state.history` holds **completed** turns only. Undo moves a turn back from history into `_currentPlayerTurn`.
+- `input` — pending throw: `number`, `multiplier` (1/2/3), `special` (`'bull'`, `'bulleye'`, `'0'`).
+- Turn advance is debounced: a 3000 ms `setTimeout` shows the last dart before rendering the next player, guarded by a `throwCount` snapshot so an intervening undo/other action cancels it. Preserve this pattern when touching turn flow.
+- Game over (last remaining player, or all cricket numbers closed by everyone) is likewise deferred 3 s behind a snapshot guard.
 
-- **Global-namespace pattern** — no modules. Add new functions as globals in the file that owns that concern; reference existing globals directly. Keep `'use strict'` at the top.
-- **File header banner** — each JS file starts with a `// =========================== / // DART COUNTER - <Area> / // ===========================` comment block. Match it for new files.
-- **One concern per file** — split by responsibility (scoring vs. rendering vs. persistence), mirroring the CSS split by screen.
-- **Extract configuration-like numbers into named constants** in `constants.js` rather than hardcoding them inline (e.g. `CRICKET_TARGET_MARKS`, `SCORES_PER_TURN`, `MAX_X01_TURN`).
-- **Mutate-then-render** — after changing `state`, call `saveGameState()` and the relevant `render*()` function.
-- **Player names are unique, case-insensitively** — stats and the results modal are keyed by lowercased name; `startFirstGame()` rejects duplicates.
+### Key invariants (do not break)
 
-## Gotchas / Things to Know
+- **X01**: bust reverts `score`/`runs` to `startingScore`/`startingRuns`, ends the turn, and the remaining darts are pushed as auto-`MISS` entries into the turn's `throws`/`values` so undo stays balanced. Finishing requires the score to land exactly on 0.
+- **Cricket**: only 15–20 and 25 are targetable (lower number buttons are hidden, grid reflows). Marks cap at 3; a hit on an already-closed number scores `value × multiplier`; overshoot marks (4th+ on one number) score as points **unless every player has closed that number**. A player finishes when all 7 numbers are closed **and** they lead (or tie) on `runs`; `cricketMultiplePlayerFinish` loops so simultaneous finishers all resolve.
+- **Names are identity**: stats, colors, and the end-game best-turn map are keyed by `name.toLowerCase()`. `startFirstGame` rejects duplicate names (case-insensitive) for this reason. Don't introduce name-keyed structures without that guarantee.
+- **Colors are stable per name** and stored in `localStorage` (`dartcounter_player_colors`); within one game every player gets a distinct palette color, reassigned + persisted on collision.
+- **Stats are derived where possible**: checkout attempts/made are recomputed from `state.history` at game end (so undo can't skew them); `bestTurn` is the best single turn (not per-game runs); games history keeps only the last 50.
+- **`player.turns` counts darts** (increments per dart, not per turn) — several aggregates (`maxDarts`, avg-per-turn math) depend on this.
 
-- `state._currentPlayerTurn` is transient (the in-progress turn) but **is** persisted by `saveGameState()`; `undo.js` and `scoring.js` rely on its exact shape (`throws`, `values`, `_scoring`, `startingScore`, `startingRuns`).
-- `player.currentGamePosition` is a temporary ranking used to sort final results (first finisher gets the highest value); it's reset to 0 in `endGame()`.
-- Cricket hides numbers 1–14 on the keypad and hides the X01 preset section; the number grid reflows to 3 columns (see `initGame()`).
-- There are leftover `console.log` debug statements throughout (e.g. in `scoring.js`, `render.js`, `undo.js`).
-- Manual "End" mid-game is destructive (finalizes and saves stats) and is guarded by a `confirm()`; the automatic game-over path is not.
-- The "Replay" button starts a new game with the same players but **reordered so the loser throws first / winner throws last**.
+### localStorage schema (keys in `js/constants.js`)
+
+- `dartcounter_stats` — `{ players: { [name.toLowerCase()]: { name, modes: { x01: {...}, cricket: {...} } } }, games: [...] }`. Per-mode stat fields are defined by `emptyModeStats()` (`js/storage.js`). `loadStats()` runs a one-time migration of legacy flat entries into the per-mode shape and resets corrupt `bestTurn` values (> `MAX_X01_TURN`). Keep migrations idempotent and tolerant of corrupt JSON (return fresh defaults).
+- `dartcounter_player_names` — saved name suggestions (≤ 20, generated `Player N` defaults excluded).
+- `dartcounter_player_colors` — `{ [name.toLowerCase()]: hexColor }`.
+
+## DartIt Bridge (Chrome extension)
+
+Flow: `injected.js` (MAIN world on dartit.net, wraps `fetch`/`XHR` to capture non-GET responses from `vis.dartit.net/detect`) → `window.postMessage` → `dartit-content.js` (isolated world) → `background.js` → `dartcounter-content.js` (on the local DartCounter tab) → writes JSON into `#dartit-bridge-value` and increments `#dartit-bridge-count` → the app's `MutationObserver` (`js/dartit-bridge.js`) scores the throw.
+
+- `parseDetect` maps a raw detect response (`{fields, numbers}`) to a token: explicit bull/miss field markers win; `numbers: 25` falls back to `Bull` (or `BE` when `fields === 'D'`); anything unrecognised returns `null` and is **not** scored — keep that fail-safe.
+- `injected.js` must never throw into the host page (all callbacks swallow errors); only non-empty plain-object responses are forwarded.
+- `manifest.json` `host_permissions` pin `localhost` and the dev LAN IP `192.168.178.92`; extend the list if the app is served from another host.
+
+## Conventions
+
+- Every `js/*.js` file opens with a `// ===...\n// DART COUNTER - <Area>\n// ===` banner and `'use strict'`; keep the banner when adding files.
+- No ES modules, no imports — new shared code goes in the appropriate existing file or a new global-scope script added to `index.html` in dependency order (after `constants.js`/`storage.js`/`state.js`, before `main.js`).
+- CSS is split per screen; put game-screen styles in `game.css`, etc.
+- Debug `console.log` calls are left in throughout the codebase (author style) — don't strip them as a matter of course, but don't add new ones gratuitously either.
+- `alert()` is used for user-facing errors (e.g., duplicate names); modals are used for game-over only.
+- Git repo with short imperative commit messages (`ui fixes`, `color order`).
