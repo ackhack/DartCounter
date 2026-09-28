@@ -11,6 +11,10 @@
   flex-direction: column;
 }
 
+#stats-screen {
+  flex-direction: column;
+}
+
 .stats-list {
   display: flex;
   flex-wrap: wrap;
