@@ -14,10 +14,12 @@ function renderGame() {
   const remaining = state.players.length - finishedCount;
   $('#finish-count').textContent = remaining > 1 ? `${remaining} Players left` : '';
 
-  // Active player name
+  // Active player name — the card's border/glow color comes from the same
+  // player color; fall back to the neutral border when there is none.
   const activeNameEl = $('#active-player-name');
   activeNameEl.textContent = player.name;
   activeNameEl.style.color = player.color || '';
+  $('#active-player-card').style.setProperty('--player-color', player.color || 'var(--border)');
 
   // Active player points
   if (isX01()) {
