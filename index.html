@@ -24,46 +24,52 @@
     <div class="setup-container">
       <h1 class="logo">🎯 Dart Counter</h1>
 
-      <div class="setup-section">
-        <h2>Game Mode</h2>
-        <div class="mode-selector">
-          <button class="mode-btn active" data-mode="x01">X01</button>
-          <button class="mode-btn" data-mode="cricket">Cricket</button>
-        </div>
-      </div>
+      <div class="setup-body">
+        <div class="setup-col">
+          <div class="setup-section">
+            <h2>Game Mode</h2>
+            <div class="mode-selector">
+              <button class="mode-btn active" data-mode="x01">X01</button>
+              <button class="mode-btn" data-mode="cricket">Cricket</button>
+            </div>
+          </div>
 
-      <div class="setup-section" id="x01-options">
-        <h2>Starting Score</h2>
-        <div class="score-selector">
-          <button class="score-btn active" data-score="301">301</button>
-          <button class="score-btn" data-score="501">501</button>
-          <button class="score-btn" data-score="701">701</button>
-        </div>
-      </div>
+          <div class="setup-section" id="x01-options">
+            <h2>Starting Score</h2>
+            <div class="score-selector">
+              <button class="score-btn active" data-score="301">301</button>
+              <button class="score-btn" data-score="501">501</button>
+              <button class="score-btn" data-score="701">701</button>
+            </div>
+          </div>
 
-      <div class="setup-section">
-        <h2>Number of Players</h2>
-        <div class="player-count-selector">
-          <button class="count-btn" data-count="2">2</button>
-          <button class="count-btn active" data-count="3">3</button>
-          <button class="count-btn" data-count="4">4</button>
-          <button class="count-btn" data-count="5">5</button>
-          <button class="count-btn" data-count="6">6</button>
-          <button class="count-btn" data-count="7">7</button>
-          <button class="count-btn" data-count="8">8</button>
+          <div class="setup-section">
+            <h2>Number of Players</h2>
+            <div class="player-count-selector">
+              <button class="count-btn" data-count="2">2</button>
+              <button class="count-btn active" data-count="3">3</button>
+              <button class="count-btn" data-count="4">4</button>
+              <button class="count-btn" data-count="5">5</button>
+              <button class="count-btn" data-count="6">6</button>
+              <button class="count-btn" data-count="7">7</button>
+              <button class="count-btn" data-count="8">8</button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="setup-section" id="player-names">
-        <h2>Player Names</h2>
-        <div id="name-inputs"></div>
-        <button id="add-player-btn" class="add-player-btn">+ Add Player</button>
+        <div class="setup-col">
+          <div class="setup-section" id="player-names">
+            <h2>Player Names</h2>
+            <div id="name-inputs"></div>
+            <button id="add-player-btn" class="add-player-btn">+ Add Player</button>
+          </div>
+
+          <button id="start-game-btn" class="start-btn">Start Game</button>
+          <button id="view-stats-btn" class="secondary-btn">Player Stats</button>
+        </div>
       </div>
 
       <datalist id="player-name-suggestions"></datalist>
-
-      <button id="start-game-btn" class="start-btn">Start Game</button>
-      <button id="view-stats-btn" class="secondary-btn">Player Stats</button>
     </div>
   </div>
 
