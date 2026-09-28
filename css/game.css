@@ -358,30 +358,46 @@
   text-decoration: line-through;
 }
 
-/* Cricket marks preview — one row of labels + 3 slot dots (empty ones dark) */
+/* Cricket — one card per row, name left / score right on a single line
+   (X01 keeps the centered name-over-score header and multi-column grid) */
+.players-list.cricket-list {
+  grid-template-columns: 1fr;
+}
+
+.players-list.cricket-list .player-card-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+/* Cricket marks preview — 7 equal columns fill the card width; the dots
+   flex to their column (capped) instead of a static size */
 .player-marks-preview {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.15rem 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.15rem 0.4rem;
   font-weight: 700;
+  font-size: clamp(0.9rem, 0.75rem + 0.6vw, 1.4rem);
 }
 
 .player-mark {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.15em;
-  font-size: 1.4rem;
   color: var(--text-muted);
   white-space: nowrap;
+  min-width: 0;
 }
 
 .player-mark-dot {
-  width: 1.4rem;
-  height: 1.4rem;
+  flex: 1 1 0;
+  max-width: 1.4em;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: var(--border);
-  flex-shrink: 0;
 }
 
 .player-mark-dot.filled {

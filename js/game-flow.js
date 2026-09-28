@@ -123,6 +123,9 @@ function initGame(players) {
   });
   $('.number-grid').classList.toggle('cricket-grid', isCricket());
 
+  // Cricket: single-column player cards (X01 keeps the multi-column grid).
+  $('#players-list').classList.toggle('cricket-list', isCricket());
+
   // Quick-turn presets are X01 checkout combos — hide them in cricket.
   $('#preset-section').style.display = isCricket() ? 'none' : '';
 
