@@ -27,7 +27,6 @@ function renderGame() {
     $('#active-player-score').textContent = player.runs;
     $('#active-score-label').textContent = 'Points';
   }
-  $('#active-runs').textContent = isCricket() ? `` : `${player.runs} points`;
 
   // Throws display — use in-progress turn throws if available
   let throwsToShow = [];
@@ -91,7 +90,7 @@ function renderPlayers() {
 
   state.players.forEach((p, i) => {
     if (p.finished) return;
-    
+
     const isActive = i === activeIdx;
 
     const card = document.createElement('div');

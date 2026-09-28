@@ -207,18 +207,6 @@
   font-size: 1.3rem;
 }
 
-/* Player Runs */
-.player-runs {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-top: 0.15rem;
-}
-
-.player-runs span {
-  color: var(--accent);
-  font-weight: 700;
-}
-
 /* Cricket Marks — left half of the card body, 2-column board.
    font-size drives the em-based mark numbers and dots, so the whole
    board scales fluidly with the viewport. */
@@ -317,6 +305,7 @@
   border: 1px solid var(--border);
   flex-shrink: 0;
   transition: border-color var(--transition);
+  min-width: 20%;
 }
 
 /* Active player — --player-color is set inline to the player's own color */
@@ -340,7 +329,7 @@
 }
 
 .player-card-name {
-  font-size: 0.95rem;
+  font-size: 2rem;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -348,7 +337,7 @@
 }
 
 .player-card-score {
-  font-size: 1rem;
+  font-size: 2rem;
   font-weight: 800;
   color: var(--text-secondary);
   flex-shrink: 0;
