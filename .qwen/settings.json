@@ -24,7 +24,9 @@
       "Bash(find *)",
       "Bash(curl *)",
       "Bash(sort)",
-      "Bash(echo)"
+      "Bash(echo)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "$version": 4
