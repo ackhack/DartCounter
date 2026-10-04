@@ -30,7 +30,8 @@ function renderGame() {
 
   // Active player points
   if (isX01()) {
-    $('#active-player-score').textContent = player.score;
+    // A finished X01 player sits on 0 — show a party emoji instead.
+    $('#active-player-score').textContent = player.score === 0 ? '🎉' : player.score;
     $('#active-score-label').textContent = 'Remaining';
   } else {
     $('#active-player-score').textContent = player.runs;
