@@ -53,6 +53,8 @@ function setupEventListeners() {
   });
   $('#replay-btn').addEventListener('click', replayGame);
   $('#back-to-setup-btn').addEventListener('click', backToSetup);
+  // Stop the auto-restart countdown and stay on the results modal.
+  $('#cancel-restart-btn').addEventListener('click', clearAutoRestart);
 
   // Number buttons
   $$('.num-btn').forEach(btn => {

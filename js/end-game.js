@@ -3,6 +3,8 @@
 // ===========================
 'use strict';
 
+let autoRestartTimer = null; // pending countdown to the next auto-started game
+
 function endGame() {
   state.gameOver = true;
   updateUndoButton();
@@ -42,6 +44,9 @@ function endGame() {
 
   // Render results modal
   renderResultsModal(results);
+
+  // Auto-start the next game after a short pause (cancellable via the modal).
+  startAutoRestart();
 }
 
 function renderResultsModal(results) {
@@ -119,4 +124,34 @@ function renderResultsModal(results) {
 
   // Show modal
   $('#end-modal').classList.remove('hidden');
+}
+
+// Count down AUTO_RESTART_DELAY seconds in the modal, then start the next
+// game automatically. clearAutoRestart() stops it (Cancel, or any transition
+// away from the modal).
+function startAutoRestart() {
+  clearAutoRestart();
+  const el = $('#auto-restart-countdown');
+  let remaining = AUTO_RESTART_DELAY;
+  if (el) el.textContent = `Next game in ${remaining}s`;
+  autoRestartTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearAutoRestart();
+      replayGame();
+    } else if (el) {
+      el.textContent = `Next game in ${remaining}s`;
+    }
+  }, 1000);
+}
+
+// Stop a pending auto-restart and clear the countdown text. Safe to call when
+// nothing is pending.
+function clearAutoRestart() {
+  if (autoRestartTimer) {
+    clearInterval(autoRestartTimer);
+    autoRestartTimer = null;
+  }
+  const el = $('#auto-restart-countdown');
+  if (el) el.textContent = '';
 }

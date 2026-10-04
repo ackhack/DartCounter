@@ -16,8 +16,12 @@
   background: var(--bg-secondary);
   border-radius: var(--radius);
   padding: 1.5rem;
+  /* Hug the content width (a flex item) instead of a fixed full width, so a
+     short results list gets a narrower box. Capped at the old 440px, with a
+     floor so it never looks cramped. */
+  width: fit-content;
+  min-width: 18rem;
   max-width: 440px;
-  width: 100%;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
@@ -98,4 +102,23 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
+}
+
+/* Auto-restart countdown — a muted line above the modal buttons. Reserves one
+   row of height so the buttons don't jump when the text is cleared. */
+.auto-restart-countdown {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-height: 1.2em;
+  margin-bottom: 0.75rem;
+}
+
+/* Stack the modal buttons with an even gap (the shared .start-btn /
+   .secondary-btn have no margin, so they'd otherwise sit flush). */
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }

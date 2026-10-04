@@ -41,6 +41,8 @@ SHANGHAI_TARGETS.push(BULL_NUMBER);
 const MIN_PLAYERS = 2;
 const SCORES_PER_TURN = 3;
 const MAX_X01_TURN = 180;
+// Seconds to show the game-over results before the next game auto-starts.
+const AUTO_RESTART_DELAY = 10;
 
 function isX01() {
   return state.mode === 'x01';

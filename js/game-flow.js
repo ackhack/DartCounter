@@ -90,6 +90,7 @@ function initGame(players) {
   //cleanup last game
   $('#end-modal').classList.add('hidden');
   clearInput();
+  clearAutoRestart();
 
   // Initialize players
   state.players = players;
@@ -149,6 +150,7 @@ function initGame(players) {
 
 function backToSetup() {
   $('#end-modal').classList.add('hidden');
+  clearAutoRestart();
   state.gameStarted = false;
   state.gameOver = false;
   showScreen('setup');
