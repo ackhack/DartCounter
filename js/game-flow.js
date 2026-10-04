@@ -137,6 +137,7 @@ function initGame(players) {
   state.throwCount = 0;
   state.round = 1;
   state.history = [];
+  state.throwLog = [];
   state.gameStarted = true;
   state.gameOver = false;
   state._currentPlayerTurn = null;

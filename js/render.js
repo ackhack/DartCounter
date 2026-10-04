@@ -60,6 +60,8 @@ function renderGame() {
 
   renderShanghaiNumberHighlight();
 
+  renderThrowLog();
+
   // Player cards
   renderPlayers();
 }
@@ -90,6 +92,18 @@ function renderShanghaiNumberHighlight() {
       if (btn.dataset.special !== '0') btn.classList.add('dimmed');
     });
   }
+}
+
+// Throw History tape — every inputted dart as a small chip, oldest on the
+// left and newest on the right. Rebuilt from state.throwLog (append-only, so
+// undo never shrinks it), then the scroll is pinned to the newest (rightmost).
+function renderThrowLog() {
+  const el = $('#throw-log');
+  if (!el) return;
+  el.innerHTML = state.throwLog.map(t =>
+    `<span class="throw-log-chip" style="color:${t.color || 'var(--text-secondary)'}">${t.label}</span>`
+  ).join('');
+  el.scrollLeft = el.scrollWidth;
 }
 
 function renderCricketMarks(player) {

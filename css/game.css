@@ -674,6 +674,29 @@
   color: white;
 }
 
+/* Throw History — a horizontally scrolling tape of every inputted dart.
+   Oldest on the left, newest on the right (auto-scrolled into view). Append-
+   only: undo never removes a chip, so the tape keeps growing within a game.
+   The chip text is tinted with the throwing player's color (set inline). */
+.throw-log {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 1.9rem;
+  padding-bottom: 0.15rem; /* room for the horizontal scrollbar */
+}
+
+.throw-log-chip {
+  flex: 0 0 auto;
+  background: var(--bg-input);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* ===========================
    MOBILE LAYOUT
    ===========================

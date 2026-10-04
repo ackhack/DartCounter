@@ -83,6 +83,10 @@ function submitScore(forcedMult) {
   state._currentPlayerTurn.throws.push(bust ? `${throwLabel} (BUST)` : throwLabel);
   state._currentPlayerTurn.values.push([throwValue, mult, throwValue * mult]);
 
+  // Append-only throw tape. Only real inputted darts land here (the auto-miss
+  // fillers pushed below on a bust bypass this), and undo never removes them.
+  state.throwLog.push({ label: throwLabel, color: player.color });
+
   // X01 bust ends the turn — remaining darts count as misses.
   // Auto-misses count as darts (player.turns) so undoing them stays balanced.
   if (bust) {

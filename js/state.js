@@ -11,6 +11,7 @@ let state = {
   throwCount: 0,         // 0-2 within current turn
   round: 1,
   history: [],           // [{round, playerId, name, throws, total}]
+  throwLog: [],          // append-only: [{label, color}] every inputted dart (undo never touches it)
   gameStarted: false,
   gameOver: false,
   _currentPlayerTurn: null,  // transient: tracks in-progress 3-dart turn
