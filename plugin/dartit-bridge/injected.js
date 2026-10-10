@@ -3,6 +3,8 @@
 // Runs inside dartit.net pages. Wraps fetch() and XMLHttpRequest so every
 // non-GET request to vis.dartit.net/detect has its JSON response captured
 // and handed to the isolated content script via window.postMessage.
+// Also watches the detection status icon and runs the auto-recalibration
+// sequence when it changes (see the recalibration section below).
 // ===========================
 (() => {
   'use strict';
@@ -100,4 +102,166 @@
     }
     return origSend.apply(this, arguments);
   };
+
+  // --- auto recalibration ---
+  // The detection status icon (icons[0].children[0]) changes when the
+  // camera detection needs recalibration. When it changes we run:
+  //   1. press icons[0].children[1] (the calibration button) — its subtree
+  //      changes twice: once when the run starts, once when it finishes
+  //   2. when the run is finished, press icons[0].children[0], which
+  //      reveals a menu containing a span with the text 'Reset Detection'
+  //   3. press that span's grandparent (the menu button)
+  const RECAL_GRACE_MS = 5000;         // ignore status changes right after a reset
+  const RECAL_RESET_TIMEOUT_MS = 15000; // how long to wait for the reset menu
+  const RECAL_CALIB_TIMEOUT_MS = 60000; // give up on a stuck calibration run
+  const RECAL_MUT_CONFIG = {
+    childList: true,
+    subtree: false,
+    attributes: false,
+    characterData: false
+  };
+
+  const recalc = {
+    busy: false,
+    graceUntil: 0,
+    watched: null,
+    observer: null
+  };
+
+  function iconsEl() {
+    const list = document.getElementsByClassName('icons');
+    return list && list[0] ? list[0] : null;
+  }
+
+  function attachStatusWatcher() {
+    try {
+      console.log('[dartit-bridge] attaching watcher');
+      const container = iconsEl();
+      if (!container || !container.children[0]) return;
+      if (
+        recalc.watched &&
+        recalc.watched.isConnected &&
+        container === recalc.watched
+      ) {
+        return; // still watching the same live node
+      }
+      if (recalc.observer) recalc.observer.disconnect();
+      recalc.watched = container;
+      recalc.observer = new MutationObserver(onStatusChange);
+      recalc.observer.observe(recalc.watched, RECAL_MUT_CONFIG);
+      console.log('[dartit-bridge] recalibration watcher attached');
+    } catch (e) {
+      // never break the host page
+    }
+  }
+
+  function onStatusChange() {
+    if (!recalc.watched || !recalc.watched.isConnected) {
+      // the icon bar was re-rendered — the poller re-attaches
+      recalc.watched = null;
+      if (recalc.observer) {
+        recalc.observer.disconnect();
+        recalc.observer = null;
+      }
+      return;
+    }
+    startRecalibration();
+  }
+
+  function startRecalibration() {
+    if (recalc.busy || Date.now() < recalc.graceUntil) return;
+    try {
+      const container = iconsEl();
+      const b = container && container.children[2];
+      if (!b) return;
+      recalc.busy = true;
+      console.log('[dartit-bridge] status icon changed - starting recalibration');
+      b.click();
+
+      // the calibration button's subtree changes twice: once when the run
+      // starts, once when it finishes
+      let changes = 0;
+      let giveUp = null;
+      const obsB = new MutationObserver(() => {
+        changes++;
+        if (changes < 2) return;
+        obsB.disconnect();
+        if (giveUp) clearTimeout(giveUp);
+        console.log('[dartit-bridge] calibration run finished');
+        pressResetDetection();
+      });
+      obsB.observe(b, RECAL_MUT_CONFIG);
+      // safety net: a stuck run (e.g. the button re-rendered mid-run) must
+      // not leave the watcher busy forever
+      giveUp = setTimeout(() => {
+        obsB.disconnect();
+        console.warn('[dartit-bridge] calibration run timed out - giving up');
+        recalc.busy = false;
+      }, RECAL_CALIB_TIMEOUT_MS);
+    } catch (e) {
+      recalc.busy = false;
+    }
+  }
+
+  function pressResetDetection() {
+    try {
+      const container = iconsEl();
+      const a = container && container.children[0];
+      if (a) a.click();
+
+      const findResetButton = () => {
+        const spans = document.querySelectorAll('span');
+        for (let i = 0; i < spans.length; i++) {
+          const span = spans[i];
+          if (span.textContent && span.textContent.trim() === 'Reset Detection') {
+            return span.parentElement && span.parentElement.parentElement;
+          }
+        }
+        return null;
+      };
+
+      const done = (btn) => {
+        recalc.busy = false;
+        // the reset itself changes the status icon — give it a moment so we
+        // don't immediately re-trigger the whole sequence
+        recalc.graceUntil = Date.now() + RECAL_GRACE_MS;
+        if (btn) {
+          console.log('[dartit-bridge] pressing Reset Detection');
+          btn.click();
+        }
+      };
+
+      const found = findResetButton();
+      if (found) {
+        done(found);
+        return;
+      }
+
+      const poll = setInterval(() => {
+        const btn = findResetButton();
+        if (!btn) return;
+        clearInterval(poll);
+        clearTimeout(giveUp);
+        done(btn);
+      }, 100);
+      const giveUp = setTimeout(() => {
+        clearInterval(poll);
+        console.warn('[dartit-bridge] Reset Detection button never appeared');
+        done(null);
+      }, RECAL_RESET_TIMEOUT_MS);
+    } catch (e) {
+      recalc.busy = false;
+    }
+  }
+
+  function startRecalibrationWatcher() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachStatusWatcher);
+    } else {
+      attachStatusWatcher();
+    }
+    // the dartit SPA may re-render the icon bar — re-check once a second
+    setInterval(attachStatusWatcher, 1000);
+  }
+  startRecalibrationWatcher();
 })();
