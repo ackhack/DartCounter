@@ -178,11 +178,14 @@
       recalc.busy = true;
 
       setTimeout(() => {
+        //pressing the pause icon button
         const container = iconsEl();
         const a = container && container.children[0];
         if (a) {
           container.children[0].click()
           setTimeout(pressResetDetection, 100);
+        } else {
+          recalc.busy = false;
         }
       }, 100);
     } catch (e) {
@@ -190,50 +193,23 @@
   }
 
   function pressResetDetection() {
-
     try {
-
-      const findResetButton = () => {
-        const spans = document.querySelectorAll('span');
-        for (let i = 0; i < spans.length; i++) {
-          const span = spans[i];
-          if (span.textContent && span.textContent.trim() === 'Reset Detection') {
-            return span.parentElement;
+      //finding and pressing the button with Reset Detection text
+      const spans = document.querySelectorAll('span');
+      for (let i = 0; i < spans.length; i++) {
+        const span = spans[i];
+        if (span.textContent && span.textContent.trim() === 'Reset Detection') {
+          const found = span.parentElement;
+          recalc.busy = false;
+          // the reset itself changes the status icon — give it a moment so we
+          // don't immediately re-trigger the whole sequence
+          recalc.graceUntil = Date.now() + RECAL_GRACE_MS;
+          if (found) {
+            console.log('[dartit-bridge] pressing Reset Detection');
+            found.click();
           }
         }
-        return null;
-      };
-
-      const done = (btn) => {
-        recalc.busy = false;
-        // the reset itself changes the status icon — give it a moment so we
-        // don't immediately re-trigger the whole sequence
-        recalc.graceUntil = Date.now() + RECAL_GRACE_MS;
-        if (btn) {
-          console.log('[dartit-bridge] pressing Reset Detection');
-          btn.click();
-        }
-      };
-
-      const found = findResetButton();
-      if (found) {
-        done(found);
-        return;
       }
-
-      const poll = setInterval(() => {
-        const btn = findResetButton();
-        if (!btn) return;
-        clearInterval(poll);
-        clearTimeout(giveUp);
-        done(btn);
-      }, 100);
-      const giveUp = setTimeout(() => {
-        clearInterval(poll);
-        console.warn('[dartit-bridge] Reset Detection button never appeared');
-        done(null);
-      }, RECAL_RESET_TIMEOUT_MS);
-
     } catch (e) {
     }
     recalc.busy = false;
