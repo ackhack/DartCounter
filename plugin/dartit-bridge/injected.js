@@ -68,12 +68,12 @@
                 .then((data) => {
                   if (isMeaningful(data)) emit(data);
                 })
-                .catch(() => {});
+                .catch(() => { });
             } catch (e) {
               // not a readable response — skip
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
       return promise;
     };
@@ -135,7 +135,6 @@
 
   function attachStatusWatcher() {
     try {
-      console.log('[dartit-bridge] attaching watcher');
       const container = iconsEl();
       if (!container || !container.children[0]) return;
       if (
@@ -147,6 +146,7 @@
       }
       if (recalc.observer) recalc.observer.disconnect();
       recalc.watched = container;
+      console.log('[dartit-bridge] attaching watcher');
       recalc.observer = new MutationObserver(onStatusChange);
       recalc.observer.observe(recalc.watched, RECAL_MUT_CONFIG);
       console.log('[dartit-bridge] recalibration watcher attached');
@@ -156,6 +156,10 @@
   }
 
   function onStatusChange() {
+    if (!document.getElementsByTagName('app-settings-insights')[0].children[1].children[0].innerText.includes('Stopped')) {
+      console.log('not stopped')
+      return;
+    }
     if (!recalc.watched || !recalc.watched.isConnected) {
       // the icon bar was re-rendered — the poller re-attaches
       recalc.watched = null;
@@ -171,50 +175,30 @@
   function startRecalibration() {
     if (recalc.busy || Date.now() < recalc.graceUntil) return;
     try {
-      const container = iconsEl();
-      const b = container && container.children[2];
-      if (!b) return;
       recalc.busy = true;
-      console.log('[dartit-bridge] status icon changed - starting recalibration');
-      b.click();
 
-      // the calibration button's subtree changes twice: once when the run
-      // starts, once when it finishes
-      let changes = 0;
-      let giveUp = null;
-      const obsB = new MutationObserver(() => {
-        changes++;
-        if (changes < 2) return;
-        obsB.disconnect();
-        if (giveUp) clearTimeout(giveUp);
-        console.log('[dartit-bridge] calibration run finished');
-        pressResetDetection();
-      });
-      obsB.observe(b, RECAL_MUT_CONFIG);
-      // safety net: a stuck run (e.g. the button re-rendered mid-run) must
-      // not leave the watcher busy forever
-      giveUp = setTimeout(() => {
-        obsB.disconnect();
-        console.warn('[dartit-bridge] calibration run timed out - giving up');
-        recalc.busy = false;
-      }, RECAL_CALIB_TIMEOUT_MS);
+      setTimeout(() => {
+        const container = iconsEl();
+        const a = container && container.children[0];
+        if (a) {
+          container.children[0].click()
+          setTimeout(pressResetDetection, 100);
+        }
+      }, 100);
     } catch (e) {
-      recalc.busy = false;
     }
   }
 
   function pressResetDetection() {
+
     try {
-      const container = iconsEl();
-      const a = container && container.children[0];
-      if (a) a.click();
 
       const findResetButton = () => {
         const spans = document.querySelectorAll('span');
         for (let i = 0; i < spans.length; i++) {
           const span = spans[i];
           if (span.textContent && span.textContent.trim() === 'Reset Detection') {
-            return span.parentElement && span.parentElement.parentElement;
+            return span.parentElement;
           }
         }
         return null;
@@ -249,9 +233,10 @@
         console.warn('[dartit-bridge] Reset Detection button never appeared');
         done(null);
       }, RECAL_RESET_TIMEOUT_MS);
+
     } catch (e) {
-      recalc.busy = false;
     }
+    recalc.busy = false;
   }
 
   function startRecalibrationWatcher() {
