@@ -3,8 +3,9 @@
 // Runs inside dartit.net pages. Wraps fetch() and XMLHttpRequest so every
 // non-GET request to vis.dartit.net/detect has its JSON response captured
 // and handed to the isolated content script via window.postMessage.
-// Also watches the detection status icon and runs the auto-recalibration
-// sequence when it changes (see the recalibration section below).
+// Also tracks POSTs to /calib and reports the outcome (success or failure)
+// to the bridge chain, and watches the detection status icon to run the
+// auto-recalibration sequence when it changes (see below).
 // ===========================
 (() => {
   'use strict';
@@ -12,10 +13,10 @@
   const TARGET = 'vis.dartit.net/detect';
   const SOURCE = 'dartit-bridge-inject';
 
-  function emit(data) {
+  function emit(data, type) {
     try {
       window.postMessage(
-        { source: SOURCE, type: 'DARTIT_DETECT', data: data },
+        { source: SOURCE, type: type || 'DARTIT_DETECT', data: data },
         window.location.origin
       );
     } catch (e) {
@@ -27,8 +28,16 @@
     return typeof url === 'string' && url.includes(TARGET);
   }
 
+  function isCalib(url) {
+    return typeof url === 'string' && url.includes('/calib');
+  }
+
   function isNonGet(method) {
     return String(method || 'GET').toUpperCase() !== 'GET';
+  }
+
+  function isPost(method) {
+    return String(method || '').toUpperCase() === 'POST';
   }
 
   // The detect endpoint can answer with an empty object or nothing at all.
@@ -75,6 +84,23 @@
           })
           .catch(() => { });
       }
+      if (isCalib(url) && isPost(method)) {
+        promise
+          .then((res) => {
+            if (res && res.status === 200) {
+              console.log('[dartit-bridge] /calib post finished with 200');
+              emit(null, 'DARTIT_CALIB_COMPLETE');
+            } else {
+              const status = res && res.status;
+              console.warn('[dartit-bridge] /calib post not successful:', status);
+              emit({ status: status }, 'DARTIT_CALIB_FAILED');
+            }
+          })
+          .catch((e) => {
+            console.warn('[dartit-bridge] /calib post failed:', e);
+            emit({ status: 0 }, 'DARTIT_CALIB_FAILED');
+          });
+      }
       return promise;
     };
   }
@@ -98,6 +124,21 @@
         } catch (e) {
           // empty or non-JSON body — skip
         }
+      });
+    }
+    if (isCalib(this.__bridgeUrl) && isPost(this.__bridgeMethod)) {
+      this.addEventListener('load', () => {
+        if (this.status === 200) {
+          console.log('[dartit-bridge] /calib post finished with 200');
+          emit(null, 'DARTIT_CALIB_COMPLETE');
+        } else {
+          console.warn('[dartit-bridge] /calib post not successful:', this.status);
+          emit({ status: this.status }, 'DARTIT_CALIB_FAILED');
+        }
+      });
+      this.addEventListener('error', () => {
+        console.warn('[dartit-bridge] /calib post failed');
+        emit({ status: 0 }, 'DARTIT_CALIB_FAILED');
       });
     }
     return origSend.apply(this, arguments);

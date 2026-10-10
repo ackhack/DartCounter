@@ -139,3 +139,33 @@ input {
   background: var(--border);
   border-radius: 2px;
 }
+
+/* Transient toast for DartIt events (calibration finished, ...) */
+#dartit-toast {
+  position: fixed;
+  top: 4rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-0.5rem);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--success);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition), transform var(--transition);
+  z-index: 1000;
+}
+
+#dartit-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#dartit-toast.error {
+  border-left-color: var(--danger);
+}

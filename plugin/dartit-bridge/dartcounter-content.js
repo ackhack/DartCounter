@@ -7,11 +7,37 @@
   'use strict';
 
   browser.runtime.onMessage.addListener((message) => {
-    if (!message || message.type !== 'dartit-detect') return;
+    if (!message) return;
 
-    document.getElementById("dartit-bridge-value").innerText = JSON.stringify(message.data)
-    document.getElementById("dartit-bridge-count").innerText =
-      parseInt(document.getElementById("dartit-bridge-count").innerText) + 1;
+    if (message.type === 'dartit-detect') {
+      document.getElementById("dartit-bridge-value").innerText = JSON.stringify(message.data)
+      document.getElementById("dartit-bridge-count").innerText =
+        parseInt(document.getElementById("dartit-bridge-count").innerText) + 1;
+      return;
+    }
+
+    if (message.type === 'calib-complete') {
+      try {
+        window.postMessage(
+          { source: 'dartit-bridge', type: 'CALIB_COMPLETE' },
+          window.location.origin
+        );
+      } catch (e) {
+        // never break the host page
+      }
+      return;
+    }
+
+    if (message.type === 'calib-failed') {
+      try {
+        window.postMessage(
+          { source: 'dartit-bridge', type: 'CALIB_FAILED', data: message.data },
+          window.location.origin
+        );
+      } catch (e) {
+        // never break the host page
+      }
+    }
   });
 
   // Requests posted by the page (window.postMessage) are relayed to the

@@ -84,18 +84,19 @@ function parseDetect(data) {
 // startRecalibration(). The ack tells us whether a dartit tab was actually
 // reached, so the button can say so instead of silently doing nothing.
 const recalibrateBtn = document.getElementById("recalibrate-btn");
+let recalibrateLabelTimer = null;
+
+function setRecalibrateLabel(text, ms) {
+  if (!recalibrateBtn) return;
+  recalibrateBtn.textContent = text;
+  if (recalibrateLabelTimer) clearTimeout(recalibrateLabelTimer);
+  recalibrateLabelTimer = setTimeout(() => {
+    recalibrateBtn.textContent = "Recalibrate";
+    recalibrateLabelTimer = null;
+  }, ms);
+}
+
 if (recalibrateBtn) {
-  let recalibrateLabelTimer = null;
-
-  function setRecalibrateLabel(text, ms) {
-    recalibrateBtn.textContent = text;
-    if (recalibrateLabelTimer) clearTimeout(recalibrateLabelTimer);
-    recalibrateLabelTimer = setTimeout(() => {
-      recalibrateBtn.textContent = "Recalibrate";
-      recalibrateLabelTimer = null;
-    }, ms);
-  }
-
   recalibrateBtn.addEventListener("click", () => {
     setRecalibrateLabel("Sending…", 4000);
     window.postMessage(
@@ -103,11 +104,46 @@ if (recalibrateBtn) {
       window.location.origin
     );
   });
-
-  window.addEventListener("message", (event) => {
-    if (event.source !== window) return;
-    const msg = event.data;
-    if (!msg || msg.source !== "dartit-bridge" || msg.type !== "RECALIBRATE_ACK") return;
-    setRecalibrateLabel(msg.ok ? "Sent ✓" : "No DartIt tab", 1500);
-  });
 }
+
+// --- transient toast for DartIt events ---
+let dartItToastTimer = null;
+
+function showDartItToast(text, isError) {
+  const toast = document.getElementById("dartit-toast");
+  if (!toast) return;
+  toast.textContent = text;
+  toast.classList.toggle("error", !!isError);
+  toast.classList.add("visible");
+  if (dartItToastTimer) clearTimeout(dartItToastTimer);
+  dartItToastTimer = setTimeout(() => {
+    toast.classList.remove("visible");
+    dartItToastTimer = null;
+  }, 3000);
+}
+
+// Events from the extension content script (calibration finished,
+// recalibrate ack).
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  const msg = event.data;
+  if (!msg || msg.source !== "dartit-bridge") return;
+
+  if (msg.type === "RECALIBRATE_ACK") {
+    setRecalibrateLabel(msg.ok ? "Sent ✓" : "No DartIt tab", 1500);
+  } else if (msg.type === "CALIB_COMPLETE") {
+    console.log('Calibration complete from DartIt');
+    showDartItToast("Calibration completed");
+  } else if (msg.type === "CALIB_FAILED") {
+    // msg.data.status — the HTTP status, or 0 when the request got no
+    // response at all (network error).
+    const status = msg.data && msg.data.status;
+    console.log('Calibration request not successful from DartIt', msg.data);
+    showDartItToast(
+      status
+        ? "Calibration failed (" + (status === 0 ? "no response" : status) + ")"
+        : "Calibration failed",
+      true
+    );
+  }
+});

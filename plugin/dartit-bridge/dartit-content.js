@@ -13,7 +13,31 @@
     if (event.origin !== 'https://dartit.net') return;
 
     const msg = event.data;
-    if (!msg || msg.source !== SOURCE || msg.type !== 'DARTIT_DETECT') return;
+    if (!msg || msg.source !== SOURCE) return;
+
+    if (msg.type === 'DARTIT_CALIB_COMPLETE') {
+      try {
+        browser.runtime.sendMessage({ type: 'calib-complete' }).catch(() => {
+          // background not ready / no listener — nothing to do
+        });
+      } catch (e) {
+        // extension context invalidated (e.g. add-on reloaded)
+      }
+      return;
+    }
+
+    if (msg.type === 'DARTIT_CALIB_FAILED') {
+      try {
+        browser.runtime.sendMessage({ type: 'calib-failed', data: msg.data }).catch(() => {
+          // background not ready / no listener — nothing to do
+        });
+      } catch (e) {
+        // extension context invalidated (e.g. add-on reloaded)
+      }
+      return;
+    }
+
+    if (msg.type !== 'DARTIT_DETECT') return;
 
     console.log('[dartit-bridge] detect response:', msg.data);
 

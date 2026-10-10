@@ -31,7 +31,15 @@ browser.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'detect') {
     console.log('[dartit-bridge] background got detect:', message.data);
-    return broadcastToAllTabs(message.data);
+    return broadcastToDartCounterTabs({ type: 'dartit-detect', data: message.data });
+  }
+
+  if (message.type === 'calib-complete') {
+    return broadcastToDartCounterTabs({ type: 'calib-complete' });
+  }
+
+  if (message.type === 'calib-failed') {
+    return broadcastToDartCounterTabs({ type: 'calib-failed', data: message.data });
   }
 
   if (message.type === 'recalibrate') {
@@ -75,7 +83,10 @@ async function sendToDartItTab() {
   }
 }
 
-async function broadcastToAllTabs(data) {
+// Deliver a payload (a throw or a calibration-complete event) to every open
+// DartCounter tab. dartcounter-content.js is only injected into those tabs,
+// so sends to other tabs fail with "no receiving end" and are ignored.
+async function broadcastToDartCounterTabs(payload) {
   let tabs;
   try {
     tabs = await browser.tabs.query({});
@@ -85,23 +96,21 @@ async function broadcastToAllTabs(data) {
   }
 
   if (!tabs || tabs.length === 0) {
-    console.warn('[dartit-bridge] no tabs open — ignoring throw.');
+    console.warn('[dartit-bridge] no tabs open — ignoring event.');
     return;
   }
-  console.log(tabs.length + ' tabs');
 
   let delivered = 0;
   await Promise.all(
     tabs.map(async (tab) => {
       if (!isDartCounterTab(tab.url)) return;
       try {
-        console.log('[dartit-bridge] sending to tab ' + tab.id + " with url " + tab.url);
-        await browser.tabs.sendMessage(tab.id, { type: 'dartit-detect', data: data });
+        await browser.tabs.sendMessage(tab.id, payload);
         delivered++;
-        console.log('[dartit-bridge] forwarded to tab', tab.id);
+        console.log('[dartit-bridge] forwarded', payload.type, 'to tab', tab.id);
       } catch (e) {
-        // Expected for tabs without our content script (or not reloaded after
-        // the add-on was installed). Only warn if it looks like our tab.
+        // Expected for tabs without our content script (or not reloaded
+        // after the add-on was installed).
         console.warn(
           '[dartit-bridge] could not reach DartCounter tab',
           tab.id,
@@ -113,6 +122,6 @@ async function broadcastToAllTabs(data) {
   );
 
   if (delivered === 0) {
-    console.warn('[dartit-bridge] no tab accepted the throw.');
+    console.warn('[dartit-bridge] no tab accepted the', payload.type, 'event.');
   }
 }
