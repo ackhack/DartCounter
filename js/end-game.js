@@ -17,18 +17,18 @@ function endGame() {
   // Mark winner
   results[0].isWinner = true;
 
-  // Update stats — skip anonymous "Player N" names so placeholder games
-  // don't create per-player stat entries.
+  // Update stats — skip anonymous "Player N" names and the computer so
+  // placeholder games and CPU play don't create per-player stat entries.
   results.forEach((p, i) => {
     p.lastGamePosition = i;
     p.currentGamePosition = 0;
-    if (!isDefaultPlayerName(p.name)) {
+    if (!isDefaultPlayerName(p.name) && !p.isCpu) {
       updatePlayerStats(p, i === 0);
     }
   });
 
-  // Save to history — skip entirely when no player used a real name.
-  if (results.some(p => !isDefaultPlayerName(p.name))) {
+  // Save to history — skip entirely when no human used a real name.
+  if (results.some(p => !isDefaultPlayerName(p.name) && !p.isCpu)) {
     saveGameToHistory({
       winner: results[0].name,
       results: results.map((p, i) => ({

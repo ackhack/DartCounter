@@ -225,6 +225,8 @@ function submitScore(forcedMult) {
     //only render new state if nothing change, if something changed, renderGame will be called there
     if (state.throwCount == 0) {
       renderGame();
+      // If the next player is the computer, start its turn.
+      maybeScheduleCpuDart();
     }
   }, 3000);
 }

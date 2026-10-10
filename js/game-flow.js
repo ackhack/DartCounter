@@ -3,32 +3,44 @@
 // ===========================
 'use strict';
 
+// Generated CPU name that doesn't collide with names already taken.
+function autoCpuName(seen) {
+  let n = 1;
+  let name = 'CPU';
+  while (seen.has(name.toLowerCase())) name = 'CPU ' + (++n);
+  return name;
+}
+
 function startFirstGame() {
-  const inputs = $$('.name-input');
-  const names = [];
+  const rows = $$('.name-input-wrapper');
 
-  // Save new names to localStorage for future suggestions (skip generated defaults like "Player 1")
-  for (let i = 0; i < inputs.length; i++) {
-    const name = inputs[i].value.trim() || `Player ${i + 1}`;
-    names.push(name);
-
-    if (name && !isDefaultPlayerName(name) && !playerNames.includes(name) && playerNames.length < 20) {
-      playerNames.push(name);
-      savePlayerNames();
-      renderPlayerSuggestions();
-    }
-  }
-
-  // Reject duplicate names (case-insensitive) — name-keyed aggregates
-  // (stats entries, the modal's per-name best-turn map) would collide.
+  // Collect names + CPU flags. Empty CPU rows get generated "CPU" / "CPU 2"
+  // / ... names that can't collide with what was typed.
+  const players = [];
   const seen = new Set();
-  for (const name of names) {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const isCpu = !!row.querySelector('.cpu-toggle-btn.active');
+    const typed = row.querySelector('.name-input').value.trim();
+    const name = typed || (isCpu ? autoCpuName(seen) : `Player ${i + 1}`);
+
+    // Reject duplicate names (case-insensitive) — name-keyed aggregates
+    // (stats entries, the modal's per-name best-turn map) would collide.
     const key = name.toLowerCase();
     if (seen.has(key)) {
       alert(`Duplicate player name: "${name}" — every player needs a unique name.`);
       return;
     }
     seen.add(key);
+    players.push({ name, isCpu });
+
+    // Save new names to localStorage for future suggestions (skip generated
+    // defaults like "Player 1" and auto-generated "CPU" names).
+    if (typed && !isDefaultPlayerName(name) && !playerNames.includes(name) && playerNames.length < 20) {
+      playerNames.push(name);
+      savePlayerNames();
+      renderPlayerSuggestions();
+    }
   }
 
   // Assign each name a color: keep the stored one, otherwise take the first
@@ -37,7 +49,7 @@ function startFirstGame() {
   // color another saved player already has gets reassigned and the map is
   // updated.
   const usedColors = new Set(Object.values(playerColors));
-  const roster = names.map((name, i) => {
+  const roster = players.map(({ name, isCpu }, i) => {
     const key = name.toLowerCase();
     let color = playerColors[key];
     // Collides if any *other* saved player has this color; the map is updated
@@ -57,7 +69,8 @@ function startFirstGame() {
       runs: 0,
       marks: {},
       finished: false,
-      currentGamePosition: 0
+      currentGamePosition: 0,
+      isCpu
     };
   });
   savePlayerColors(playerColors);
@@ -76,7 +89,8 @@ function replayGame() {
   });
 
   // Manually start game with same settings but reordered players.
-  // Color follows the player, not the position, across the reshuffle.
+  // Color and the CPU flag follow the player, not the position, across the
+  // reshuffle.
   initGame(names.map((p, i) => ({
     id: i,
     name: p.name,
@@ -86,7 +100,8 @@ function replayGame() {
     runs: 0,
     marks: {},
     finished: false,
-    currentGamePosition: 0
+    currentGamePosition: 0,
+    isCpu: p.isCpu
   })));
 }
 
@@ -95,6 +110,7 @@ function initGame(players) {
   $('#end-modal').classList.add('hidden');
   clearInput();
   clearAutoRestart();
+  clearCpuTurn();
 
   // Initialize players
   state.players = players;
@@ -140,11 +156,15 @@ function initGame(players) {
   showScreen('game');
   updateUndoButton();
   renderGame();
+
+  // If the first player is the computer, start its turn.
+  maybeScheduleCpuDart();
 }
 
 function backToSetup() {
   $('#end-modal').classList.add('hidden');
   clearAutoRestart();
+  clearCpuTurn();
   state.gameStarted = false;
   state.gameOver = false;
   showScreen('setup');

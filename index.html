@@ -44,6 +44,14 @@
             </div>
           </div>
 
+          <div class="setup-section" id="cpu-options" style="display: none;">
+            <h2>CPU Difficulty</h2>
+            <div class="cpu-difficulty-row">
+              <input type="range" id="cpu-difficulty" min="0" max="100" value="50" step="1">
+              <span id="cpu-difficulty-value">50</span>
+            </div>
+          </div>
+
           <div class="setup-section">
             <h2>Number of Players</h2>
             <div class="player-count-selector">
@@ -239,6 +247,7 @@
   <script src="js/input.js"></script>
   <script src="js/undo.js"></script>
   <script src="js/scoring.js"></script>
+  <script src="js/cpu.js"></script>
   <script src="js/render.js"></script>
   <script src="js/stats-screen.js"></script>
   <script src="js/end-game.js"></script>

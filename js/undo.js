@@ -36,6 +36,10 @@ function undoLast() {
 
   clearInput();
   renderGame();
+
+  // Undoing a computer dart (or its whole turn) hands the turn back to the
+  // CPU — resume its turn from the restored state.
+  maybeScheduleCpuDart();
 }
 
 function revertPlayerStats(player, turn) {

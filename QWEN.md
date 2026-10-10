@@ -8,6 +8,8 @@ DartCounter is a static, dependency-free web app for scoring dart games, designe
 - **Cricket**: hit 3 marks on 15–20 and the bull (25) to close; points from the 4th hit onward; first player to close everything while leading on points wins (ties finish simultaneously).
 - **Shanghai (21)**: targets progress 1→20→bull; every player throws one 3-dart turn per target and only the current target scores (single/double/triple = 1×/2×/3× of the number, bull 25, bulls-eye 50). A single + double + triple of the current target in one turn wins instantly; the bull is not winnable — after it, the most points wins (ties share the top position).
 
+Any player can be a **computer opponent** (X01 only): a per-player 🤖 toggle on the setup screen plus a 0–100 difficulty slider. The CPU plays through the normal scoring path with a short per-dart delay, and is excluded from persistent stats.
+
 There is no build system, no package manager, no module system — plain ES5-style scripts with `'use strict'`, shared globals, loaded in dependency order by `index.html`. A companion Chrome extension (`plugin/dartit-bridge/`) auto-scores darts from the dartit.net camera service.
 
 ## Running
@@ -48,6 +50,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `js/input.js` | On-screen input: **instant scoring** — pressing a number scores that dart immediately (pending multiplier is consumed and reset to 1). `applyThrowToken(token)` turns tokens (`T20`, `D20`, `20`, `Bull`, `BE`, `0`) into input state; `submitPresetTurn` and `skipToNextPlayer` reuse the normal scoring path. |
 | `js/undo.js` | Per-dart undo: `undoLast` + `revertPlayerStats`, including bust restoration and cricket mark removal. |
 | `js/scoring.js` | Core: `submitScore(forcedMult)`, `processX01Score` (bust/finish), `processCricketScore`, `cricketPlayerFinished`, `cricketMultiplePlayerFinish`, `processShanghaiScore` (instant-win combo), `shanghaiFinalRanking`. |
+| `js/cpu.js` | Computer opponent (X01): checkout-aware dart choice scaled by `state.cpuDifficulty`, plus the turn driver (`maybeScheduleCpuDart`/`cpuThrowDart`) that throws via `applyThrowToken` + `submitScore` with a `CPU_THINK_DELAY` pause per dart. |
 | `js/render.js` | `renderGame` — active-player card (hidden in cricket), throw slots, cricket scoreboard grid (`renderCricketMarksGrid` — names, marks, points; replaces the player list in cricket), player cards with last-5-turn history. |
 | `js/stats-screen.js` | Stats screen: per-player, per-mode aggregates; recent-games list. |
 | `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. |
@@ -56,7 +59,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 
 ### State model (`js/state.js`)
 
-- `state.players[]` — `{id, name, color, score, runs, turns, marks{}, finished, currentGamePosition, lastGamePosition?}`. Fixed play order; finished players are skipped on turn advance.
+- `state.players[]` — `{id, name, color, score, runs, turns, marks{}, finished, currentGamePosition, lastGamePosition?, isCpu?}`. Fixed play order; finished players are skipped on turn advance. `state.cpuDifficulty` (0–100) sets the CPU's intended-dart hit chance.
 - `state.throwCount` (0–2 within a turn) and `state._currentPlayerTurn` — the **transient in-progress turn** (`{round, playerId, name, color, throws[], values[], _scoring[], startingScore, startingRuns, shanghaiIndex, total?}`). `state.history` holds **completed** turns only. Undo moves a turn back from history into `_currentPlayerTurn`.
 - **Shanghai**: `state.shanghaiIndex` (0–20 into `SHANGHAI_TARGETS`) and `state.shanghaiTurnsAtNumber` (completed turns at the current target; at `players.length` the target advances). Turn objects store `shanghaiIndex` so undo can restore the target when crossing a number boundary.
 - `input` — pending throw: `number`, `multiplier` (1/2/3), `special` (`'bull'`, `'bulleye'`, `'0'`).
@@ -72,6 +75,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 - **Colors are stable per name** and stored in `localStorage` (`dartcounter_player_colors`); within one game every player gets a distinct palette color, reassigned + persisted on collision.
 - **Stats are derived where possible**: checkout attempts/made are recomputed from `state.history` at game end (so undo can't skew them); `bestTurn` is the best single turn (not per-game runs); games history keeps only the last 50.
 - **`player.turns` counts darts** (increments per dart, not per turn) — several aggregates (`maxDarts`, avg-per-turn math) depend on this.
+- **CPU opponent (X01 only)**: `maybeScheduleCpuDart()` re-arms a single `cpuTimer` (cleared first, so it can never double-throw) and is called after `initGame`, in `submitScore`'s 3 s turn-advance timeout, and in `undoLast` (undoing a CPU dart resumes its turn). `chooseCpuDart` plays standard checkout strategy — finish when possible, else the highest dart that leaves a 1-dart finish (`CPU_MAX_CHECKOUT = 170`), else T20; score 1 intentionally busts (unfinishable). Errors are weighted miss/near-misses with probability from `CPU_BASE_HIT_CHANCE`/`CPU_MAX_HIT_CHANCE` and difficulty. CPU rows get auto names `CPU`, `CPU 2`, …, never land in persistent stats or name suggestions, and the mode switch away from X01 is blocked while a CPU is selected. During a CPU turn the number/multiplier/special/preset buttons are disabled (undo/next stay live). Known edge: a game where the CPU is permanently stuck at score 1 stalls — End button is the escape.
 
 ### localStorage schema (keys in `js/constants.js`)
 

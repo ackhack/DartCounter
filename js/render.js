@@ -8,6 +8,12 @@ function renderGame() {
 
   const player = state.players[state.currentPlayerIndex];
 
+  // While the CPU throws, the manual input (numbers, multipliers, specials,
+  // presets) is inert so a habit tap can't score onto the CPU's turn. Undo
+  // and Next stay live (they are managed by updateUndoButton).
+  const cpuTurn = !!player.isCpu && !state.gameOver;
+  $$('.num-btn, .mult-btn, .special-btn, .preset-btn').forEach(b => b.disabled = cpuTurn);
+
   // Header info
   if (isShanghai()) {
     // The "round" is the current target, not a turn counter.
@@ -24,7 +30,7 @@ function renderGame() {
   // Active player name — the card's border/glow color comes from the same
   // player color; fall back to the neutral border when there is none.
   const activeNameEl = $('#active-player-name');
-  activeNameEl.textContent = player.name;
+  activeNameEl.textContent = player.name + (player.isCpu ? ' 🤖' : '');
   activeNameEl.style.color = player.color || '';
   $('#active-player-card').style.setProperty('--player-color', player.color || 'var(--border)');
 
@@ -171,7 +177,7 @@ function renderPlayers() {
 
     card.innerHTML = `
       <div class="player-card-header">
-        <span class="player-card-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}</span>
+        <span class="player-card-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}${p.isCpu ? ' 🤖' : ''}</span>
         <span class="player-card-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
       </div>
       ${historyHtml}
