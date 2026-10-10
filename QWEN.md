@@ -37,7 +37,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `index.html` | Single page: 3 screens (setup / game / stats) + end-game modal. Script load order at the bottom matters — it IS the dependency graph. |
 | `css/base.css` | Theme, shared layout, screen switching (`.screen.active`). |
 | `css/setup.css` | Setup screen styling. |
-| `css/game.css` | Game screen: active-player card, cricket marks board, player cards, number grid. |
+| `css/game.css` | Game screen: cricket scoreboard grid (replaces active card + player list in cricket), player cards, number grid. |
 | `css/modal.css` | End-game modal. |
 | `css/stats.css` | Stats screen. |
 | `js/constants.js` | Storage keys, 16-color `PLAYER_COLORS` palette (ordered most-distinct-first), cricket constants (`CRICKET_NUMBERS`, `BULL_NUMBER = 25`, `CRICKET_TARGET_MARKS = 3`), `SHANGHAI_TARGETS` (1–20 + bull), `SCORES_PER_TURN = 3`, `MAX_X01_TURN = 180`, `isX01()`/`isCricket()`/`isShanghai()`, `currentShanghaiTarget()`. |
@@ -48,7 +48,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `js/input.js` | On-screen input: **instant scoring** — pressing a number scores that dart immediately (pending multiplier is consumed and reset to 1). `applyThrowToken(token)` turns tokens (`T20`, `D20`, `20`, `Bull`, `BE`, `0`) into input state; `submitPresetTurn` and `skipToNextPlayer` reuse the normal scoring path. |
 | `js/undo.js` | Per-dart undo: `undoLast` + `revertPlayerStats`, including bust restoration and cricket mark removal. |
 | `js/scoring.js` | Core: `submitScore(forcedMult)`, `processX01Score` (bust/finish), `processCricketScore`, `cricketPlayerFinished`, `cricketMultiplePlayerFinish`, `processShanghaiScore` (instant-win combo), `shanghaiFinalRanking`. |
-| `js/render.js` | `renderGame` — active-player card, throw slots, cricket mark dots, player cards with last-5-turn history. |
+| `js/render.js` | `renderGame` — active-player card (hidden in cricket), throw slots, cricket scoreboard grid (`renderCricketMarksGrid` — names, marks, points; replaces the player list in cricket), player cards with last-5-turn history. |
 | `js/stats-screen.js` | Stats screen: per-player, per-mode aggregates; recent-games list. |
 | `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. |
 | `js/dartit-bridge.js` | App side of the bridge: `MutationObserver` on `#dartit-bridge-count` triggers `applyDartItUpdate` → `parseDetect` (raw dartit response → throw token) → `applyThrowToken` + `submitScore`. Duplicate values are dropped. |

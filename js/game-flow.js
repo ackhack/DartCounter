@@ -104,25 +104,11 @@ function initGame(players) {
   state.shanghaiTurnsAtNumber = 0;
 
   // Initialize cricket marks
-  const cricketSection = $('#cricket-marks-section');
   if (isCricket()) {
     state.players.forEach(p => {
       p.marks = {};
       CRICKET_NUMBERS.forEach(n => p.marks[n] = 0);
     });
-
-    cricketSection.style.display = 'grid';
-    CRICKET_NUMBERS.forEach(n => {
-      const el = $(`#marks-${n}`);
-      if (el) {
-        const numEl = el.querySelector('.mark-num');
-        if (numEl) {
-          numEl.classList.remove('closed');
-        }
-      }
-    });
-  } else {
-    cricketSection.style.display = 'none';
   }
 
   // In cricket only 15-20 (and bull) are targetable — hide the rest and
@@ -132,11 +118,18 @@ function initGame(players) {
   });
   $('.number-grid').classList.toggle('cricket-grid', isCricket());
 
-  // Cricket: single-column player cards (X01 keeps the multi-column grid).
-  $('#players-list').classList.toggle('cricket-list', isCricket());
+  // Cricket: the scoreboard replaces the player list entirely (names, marks
+  // and points all live in the grid), so hide the list and let the grid take
+  // its full height.
+  $('#players-list').style.display = isCricket() ? 'none' : '';
+  $('#cricket-marks-grid').style.display = isCricket() ? '' : 'none';
 
   // Quick-turn presets are X01 checkout combos — hide them in the other modes.
   $('#preset-section').style.display = (isCricket() || isShanghai()) ? 'none' : '';
+
+  // In cricket the per-player cards already show name, points and marks, so
+  // the big active player card adds nothing — hide it.
+  $('#active-player-score').style.display = isCricket() ? 'none' : '';
 
   state.currentPlayerIndex = 0;
   state.throwCount = 0;

@@ -116,7 +116,6 @@
   flex-shrink: 0;
 }
 
-/* Two-column body: left = cricket marks, right = score/throws */
 .player-card-top {
   text-align: center;
   margin-bottom: 0.6rem;
@@ -137,15 +136,6 @@
   justify-content: center;
   gap: 0.25rem;
   text-align: center;
-}
-
-.player-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 0.2rem;
 }
 
 /* The throwing player is the single most important thing on screen —
@@ -210,73 +200,6 @@
 .throw-empty {
   color: var(--text-muted);
   font-size: 1.3rem;
-}
-
-/* Cricket Marks — left half of the card body, 2-column board.
-   font-size drives the em-based mark numbers and dots, so the whole
-   board scales fluidly with the viewport. */
-.cricket-marks {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-content: center;
-  gap: 0.5rem 0.6rem;
-  font-size: clamp(1.1rem, 1rem + 0.4vw, 1.5rem);
-}
-
-.marks-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.mark-num {
-  font-size: 1em;
-  width: 1.5em;
-  font-weight: 700;
-  color: var(--text-muted);
-  justify-items: center;
-}
-
-.mark-num.closed {
-  color: var(--success);
-}
-
-.mark-num.closed-all {
-  color: var(--info) !important;
-}
-
-.mark-dots {
-  display: flex;
-  gap: 0.125rem;
-}
-
-.mark-dot {
-  width: 1.15em;
-  height: 1.15em;
-  border-radius: 50%;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  transition: all 0.2s ease;
-}
-
-.mark-dot.filled {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.mark-dot.all-filled {
-  background: var(--success) !important;
-  border-color: var(--success) !important;
-  box-shadow: none !important;
-}
-
-.mark-dot.closed-all {
-  background: var(--info) !important;
-  border-color: var(--info) !important;
-  box-shadow: none !important;
 }
 
 /* ===========================
@@ -358,58 +281,88 @@
   text-decoration: line-through;
 }
 
-/* Cricket — one card per row, name left / score right on a single line
-   (X01 keeps the centered name-over-score header and multi-column grid) */
-.players-list.cricket-list {
-  grid-template-columns: 1fr;
-}
-
-.players-list.cricket-list .player-card-header {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  text-align: left;
-}
-
-/* Cricket marks preview — 7 equal columns fill the card width; the dots
-   flex to their column (capped) instead of a static size */
-.player-marks-preview {
+/* Cricket scoreboard — in cricket it replaces the player list: the header
+   row holds the numbers to hit, each player a row, each cell the 3 hit-dots,
+   points at the right. Everything scales fluidly to fill the panel: the
+   header row stays a slim strip (line-height 1), player rows are equal
+   flexible bands (min: content), and the dots fill their column width. */
+.marks-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.15rem 0.4rem;
-  font-weight: 700;
-  font-size: clamp(0.9rem, 0.75rem + 0.6vw, 1.4rem);
+  grid-template-columns: max-content repeat(7, minmax(0, 1fr)) max-content;
+  grid-template-rows: auto;
+  grid-auto-rows: minmax(max-content, 1fr);
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 0;
 }
 
-.player-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.15em;
+.marks-grid-num {
+  text-align: center;
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 700;
   color: var(--text-muted);
+}
+
+.marks-grid-name {
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.6rem);
+  font-weight: 700;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
 }
 
-.player-mark-dot {
+.marks-grid-cell {
+  display: flex;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-bottom: 0.5rem;
+}
+
+.marks-grid-dot {
   flex: 1 1 0;
-  max-width: 1.4em;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
 }
 
-.player-mark-dot.filled {
+.marks-grid-dot.filled {
   background: var(--accent);
+  border-color: var(--accent);
 }
 
-.player-mark-dot.closed {
+.marks-grid-dot.closed {
   background: var(--success);
+  border-color: var(--success);
 }
 
-.player-mark-dot.closed-all {
-  background: var(--info) !important;
+.marks-grid-dot.closed-all {
+  background: var(--info);
+  border-color: var(--info);
+}
+
+.marks-grid-points-label {
+  text-align: center;
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.marks-grid-points {
+  text-align: center;
+  font-size: clamp(1.1rem, 1rem + 0.6vw, 2rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  min-width: 2ch;
 }
 
 /* Per-player history — hidden entirely while the player has no turns yet */
@@ -718,19 +671,6 @@
 
   .player-card-top {
     margin-bottom: 0.45rem;
-  }
-
-  /* Stack the card body: score/throws first, then the cricket marks board
-     full-width below — side-by-side left the mark dots too small to read */
-  .player-card-body {
-    flex-direction: column-reverse;
-    gap: 0.6rem;
-  }
-
-  /* 3-column marks board — 7 targets in 3 rows keeps the card short enough
-     that the whole board fits above the queue on a phone */
-  .cricket-marks {
-    grid-template-columns: repeat(3, 1fr);
   }
 
   /* Compact input rows so the score panel keeps most of the screen */

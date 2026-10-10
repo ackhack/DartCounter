@@ -32,10 +32,8 @@ function renderGame() {
   if (isX01()) {
     // A finished X01 player sits on 0 — show a party emoji instead.
     $('#active-player-score').textContent = player.score === 0 ? '🎉' : player.score;
-    $('#active-score-label').textContent = 'Remaining';
   } else {
     $('#active-player-score').textContent = player.runs;
-    $('#active-score-label').textContent = 'Points';
   }
 
   // Throws display — use in-progress turn throws if available
@@ -54,16 +52,18 @@ function renderGame() {
     }
   }
 
-  // Cricket marks - already cleared above, now populate from player data
-  if (isCricket())
-    renderCricketMarks(player);
-
   renderShanghaiNumberHighlight();
 
   renderThrowLog();
 
-  // Player cards
-  renderPlayers();
+  if (isCricket()) {
+    // Player list is hidden in cricket — the scoreboard carries names,
+    // marks and points instead.
+    renderCricketMarksGrid();
+  } else {
+    // Player cards
+    renderPlayers();
+  }
 }
 
 // Shanghai: highlight the one number that scores this round and dim the rest.
@@ -106,33 +106,36 @@ function renderThrowLog() {
   el.scrollLeft = el.scrollWidth;
 }
 
-function renderCricketMarks(player) {
+// Cricket scoreboard — in cricket it replaces the player list: the header
+// row holds the numbers to hit, each player is a row with the 3 dots for
+// each number (same dot states as the old per-player preview) and their
+// points at the right.
+function renderCricketMarksGrid() {
+  const grid = $('#cricket-marks-grid');
+  if (!grid) return;
+
+  let html = '<span class="marks-grid-corner"></span>';
   CRICKET_NUMBERS.forEach(n => {
-    updateMarkDisplay(`marks-${n}`, player.marks[n] || 0, n);
+    html += `<span class="marks-grid-num">${n === BULL_NUMBER ? 'B' : n}</span>`;
   });
-}
+  html += '<span class="marks-grid-points-label">Pts</span>';
 
-function updateMarkDisplay(elementId, marks, number) {
-  const el = $(`#${elementId}`);
-  if (!el) return;
-  const dotsEl = el.querySelector('.mark-dots');
-  if (!dotsEl) return;
+  state.players.forEach(p => {
+    if (p.finished) return;
+    html += `<span class="marks-grid-name" style="color:${p.color || ''}">${p.name}</span>`;
+    CRICKET_NUMBERS.forEach(n => {
+      const m = p.marks[n] || 0;
+      let dots = '';
+      for (let d = 0; d < CRICKET_TARGET_MARKS; d++) {
+        const dotCls = cricketAllPlayersClosed(n) ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
+        dots += `<span class="marks-grid-dot ${dotCls}"></span>`;
+      }
+      html += `<span class="marks-grid-cell">${dots}</span>`;
+    });
+    html += `<span class="marks-grid-points">${p.runs}</span>`;
+  });
 
-  dotsEl.innerHTML = '';
-  const closed = marks >= CRICKET_TARGET_MARKS;
-
-  for (let i = 0; i < CRICKET_TARGET_MARKS; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'mark-dot';
-    if (cricketAllPlayersClosed(number)) {
-      dot.classList.add('closed-all');
-    } else if (closed) {
-      dot.classList.add('all-filled');
-    } else if (i < marks) {
-      dot.classList.add('filled');
-    }
-    dotsEl.appendChild(dot);
-  }
+  grid.innerHTML = html;
 }
 
 function renderPlayers() {
@@ -155,23 +158,6 @@ function renderPlayers() {
 
     const scoreText = isX01() ? p.score : `${p.runs} points`;
 
-    let marksPreview = '';
-    if (isCricket() && !p.finished) {
-      marksPreview = '<div class="player-marks-preview">';
-      CRICKET_NUMBERS.forEach(n => {
-        const m = p.marks[n] || 0;
-        // Blue when every player has closed this number, like the mark-dots
-        const label = n === BULL_NUMBER ? 'B' : String(n);
-        let dots = '';
-        for (let d = 0; d < CRICKET_TARGET_MARKS; d++) {
-          const dotCls = cricketAllPlayersClosed(n) ? 'closed-all' : (m >= CRICKET_TARGET_MARKS ? 'closed' : (d < m ? 'filled' : ''));
-          dots += `<span class="player-mark-dot ${dotCls}"></span>`;
-        }
-        marksPreview += `<span class="player-mark">${label}${dots}</span>`;
-      });
-      marksPreview += '</div>';
-    }
-
     // Last 5 completed turns of this player, newest first.
     // The in-progress turn is already visible in the big active player card.
     const turns = state.history.filter(h => h.playerId === p.id).slice(-5).reverse();
@@ -188,7 +174,6 @@ function renderPlayers() {
         <span class="player-card-name"${p.color ? ` style="color:${p.color}"` : ''}>${p.name}</span>
         <span class="player-card-score ${p.finished ? 'finished' : ''}">${scoreText}</span>
       </div>
-      ${marksPreview}
       ${historyHtml}
     `;
 

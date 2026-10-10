@@ -110,27 +110,12 @@
         <!-- Active Player -->
         <div class="active-player-card" id="active-player-card">
           <div class="player-card-top">
-            <div class="player-label">THROWING</div>
             <div class="player-name-large" id="active-player-name">Player 1</div>
           </div>
 
           <div class="player-card-body">
-            <!-- Cricket marks board (hidden for X01) — left half -->
-            <div class="cricket-marks" id="cricket-marks-section" style="display: none;">
-              <div class="marks-row" id="marks-15"><span class="mark-num">15</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-16"><span class="mark-num">16</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-17"><span class="mark-num">17</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-18"><span class="mark-num">18</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-19"><span class="mark-num">19</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-20"><span class="mark-num">20</span><span class="mark-dots"></span></div>
-              <div class="marks-row" id="marks-25"><span class="mark-num">B</span><span class="mark-dots"></span></div>
-            </div>
-
-            <!-- Score / throws info — right half -->
             <div class="player-info">
               <div class="player-score-large" id="active-player-score">301</div>
-              <div class="player-score-label" id="active-score-label">Remaining</div>
-
               <div class="throws-row">
                 <div class="throw-slot" id="throw-0"><span class="throw-empty">-</span></div>
                 <div class="throw-slot" id="throw-1"><span class="throw-empty">-</span></div>
@@ -142,6 +127,9 @@
 
         <!-- Player Cards (queue + per-player history) -->
         <div class="players-section">
+          <!-- Cricket scoreboard: replaces the player list in cricket —
+               numbers to hit, per-player marks and points -->
+          <div id="cricket-marks-grid" class="marks-grid" style="display: none;"></div>
           <div id="players-list" class="players-list"></div>
         </div>
       </section>
