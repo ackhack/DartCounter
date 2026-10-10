@@ -32,18 +32,22 @@ function startFirstGame() {
   }
 
   // Assign each name a color: keep the stored one, otherwise take the first
-  // palette color no one else in this game uses (keeps all players distinct;
-  // >16 players wraps around). A stored color that collides with another
-  // player this game gets reassigned and the map is updated.
-  const usedColors = new Set();
+  // palette color no saved player uses (colors stay unique across all of
+  // localStorage, not just this game; >16 players wraps around). A stored
+  // color another saved player already has gets reassigned and the map is
+  // updated.
+  const usedColors = new Set(Object.values(playerColors));
   const roster = names.map((name, i) => {
     const key = name.toLowerCase();
     let color = playerColors[key];
-    if (!color || usedColors.has(color)) {
+    // Collides if any *other* saved player has this color; the map is updated
+    // as we go, so this also covers players earlier in this roster.
+    const collides = color && Object.entries(playerColors).some(([k, c]) => k !== key && c === color);
+    if (!color || collides) {
       color = PLAYER_COLORS.find(c => !usedColors.has(c)) || PLAYER_COLORS[i % PLAYER_COLORS.length];
       playerColors[key] = color;
+      usedColors.add(color);
     }
-    usedColors.add(color);
     return {
       id: i,
       name,
