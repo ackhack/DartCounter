@@ -74,3 +74,40 @@ function parseDetect(data) {
 
   return null;
 }
+
+// --- manual recalibration ---
+// The "Recalibrate" button (game header) asks the extension to run the
+// dartit.net recalibration sequence. A plain page can only talk to the
+// extension through its content script, so we window.postMessage out and
+// plugin/dartit-bridge/dartcounter-content.js relays it to the background,
+// which delivers it to the dartit.net tab; injected.js then runs
+// startRecalibration(). The ack tells us whether a dartit tab was actually
+// reached, so the button can say so instead of silently doing nothing.
+const recalibrateBtn = document.getElementById("recalibrate-btn");
+if (recalibrateBtn) {
+  let recalibrateLabelTimer = null;
+
+  function setRecalibrateLabel(text, ms) {
+    recalibrateBtn.textContent = text;
+    if (recalibrateLabelTimer) clearTimeout(recalibrateLabelTimer);
+    recalibrateLabelTimer = setTimeout(() => {
+      recalibrateBtn.textContent = "Recalibrate";
+      recalibrateLabelTimer = null;
+    }, ms);
+  }
+
+  recalibrateBtn.addEventListener("click", () => {
+    setRecalibrateLabel("Sending…", 4000);
+    window.postMessage(
+      { source: "dartcounter-bridge", type: "RECALIBRATE" },
+      window.location.origin
+    );
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+    if (!msg || msg.source !== "dartit-bridge" || msg.type !== "RECALIBRATE_ACK") return;
+    setRecalibrateLabel(msg.ok ? "Sent ✓" : "No DartIt tab", 1500);
+  });
+}

@@ -169,10 +169,10 @@
       }
       return;
     }
-    startRecalibration();
+    startRecalibration(false);
   }
 
-  function startRecalibration() {
+  function startRecalibration(pressRecal) {
     if (recalc.busy || Date.now() < recalc.graceUntil) return;
     try {
       recalc.busy = true;
@@ -183,7 +183,9 @@
         const a = container && container.children[0];
         if (a) {
           container.children[0].click()
-          setTimeout(pressResetDetection, 100);
+          setTimeout(() => {
+            pressResetDetection(pressRecal);
+          }, 100);
         } else {
           recalc.busy = false;
         }
@@ -192,7 +194,7 @@
     }
   }
 
-  function pressResetDetection() {
+  function pressResetDetection(pressRecal) {
     try {
       //finding and pressing the button with Reset Detection text
       const spans = document.querySelectorAll('span');
@@ -207,12 +209,23 @@
           if (found) {
             console.log('[dartit-bridge] pressing Reset Detection');
             found.click();
+            if (pressRecal) {
+              pressRecalibrateButton();
+            }
           }
         }
       }
     } catch (e) {
     }
     recalc.busy = false;
+  }
+
+  function pressRecalibrateButton() {
+    const container = iconsEl();
+    const a = container && container.children[1];
+    if (a) {
+      container.children[1].click()
+    }
   }
 
   function startRecalibrationWatcher() {
@@ -225,4 +238,17 @@
     setInterval(attachStatusWatcher, 1000);
   }
   startRecalibrationWatcher();
+
+  // Manual trigger: the DartCounter "Recalibrate" button posts RECALIBRATE
+  // (via its extension content scripts) when pressed. Runs the same sequence
+  // as the auto watcher, but without the "detection is Stopped" precondition
+  // — the user asked for it explicitly. The existing busy/grace guards still
+  // apply, so a double-press or a press right after an auto-reset is a no-op.
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+    if (!msg || msg.source !== 'dartit-bridge' || msg.type !== 'RECALIBRATE') return;
+    console.log('[dartit-bridge] manual recalibration requested');
+    startRecalibration(true);
+  });
 })();

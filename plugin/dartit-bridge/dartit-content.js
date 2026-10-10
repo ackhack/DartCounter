@@ -25,4 +25,21 @@
       // extension context invalidated (e.g. add-on reloaded)
     }
   });
+
+  // Requests from the extension background (the DartCounter "Recalibrate"
+  // button) are handed to the page; injected.js listens for them and runs
+  // startRecalibration().
+  browser.runtime.onMessage.addListener((message) => {
+    if (!message || message.type !== 'dartit-recalibrate') return;
+
+    console.log('[dartit-bridge] recalibration requested');
+    try {
+      window.postMessage(
+        { source: 'dartit-bridge', type: 'RECALIBRATE' },
+        window.location.origin
+      );
+    } catch (e) {
+      // never break the host page
+    }
+  });
 })();
