@@ -50,9 +50,6 @@ const CPU_BASE_HIT_CHANCE = 0.20;
 const CPU_MAX_HIT_CHANCE = 0.98;
 // Pause before the CPU throws each dart, so its turn is watchable.
 const CPU_THINK_DELAY = 1000;
-// Highest score with a 3-dart checkout (MAX_X01_TURN itself needs 180 in one
-// turn, which only 3×T20 provides and can't be finished).
-const CPU_MAX_CHECKOUT = 170;
 
 function isX01() {
   return state.mode === 'x01';
