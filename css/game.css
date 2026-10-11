@@ -333,7 +333,7 @@
 
 .marks-grid-num {
   text-align: center;
-  font-size: 3rem;
+  font-size: 4vw;
   line-height: 1;
   font-weight: 700;
   color: var(--text-muted);
@@ -382,7 +382,7 @@
 
 .marks-grid-points-label {
   text-align: center;
-  font-size: 3rem;
+  font-size: 4vw;
   line-height: 1;
   font-weight: 700;
   color: var(--text-muted);

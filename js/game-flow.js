@@ -139,7 +139,6 @@ function initGame(players) {
   // its full height.
   $('#players-list').style.display = isCricket() ? 'none' : '';
   $('#cricket-marks-grid').style.display = isCricket() ? '' : 'none';
-  $('#active-player-score').style.display = isCricket() ? 'none' : '';
 
   // Quick-turn presets are X01 checkout combos — hide them in the other modes.
   $('#preset-section').style.display = (isX01()) ? '' : 'none';
