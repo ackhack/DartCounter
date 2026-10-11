@@ -92,8 +92,8 @@ function getModeSpecificDisplay(player) {
     const checkout = CPU_CHECKOUT_CHART[player.score];
     if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
       return checkout
-        .map(d => `<span class="checkout-dart">${d}</span>`)
-        .join('<span class="checkout-sep">→</span>');
+        .map(d => `<span class="checkout-dart throw-slot">${d}</span>`)
+        .join('<span class="checkout-sep">⇒</span>');
     }
   } else if (isShanghai()) {
     return modeTargetHtml(currentShanghaiTarget());
