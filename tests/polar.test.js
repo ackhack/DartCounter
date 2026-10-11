@@ -134,5 +134,16 @@ check('BE aim stays within maxR(50) = 0.525', beOk);
 check('maxR(0) = 1.0', Math.abs((1.0 - (1.0 - 0.05) * 0) - 1.0) < 1e-12);
 check('maxR(100) = 0.05', Math.abs((1.0 - (1.0 - 0.05) * 1) - 0.05) < 1e-12);
 
+// --- recordDartHit: per-turn hit storage shared by CPU and (later) players ---
+const turn = { throws: ['T20', 'T20 (BUST)', 'MISS'] };
+recordDartHit(turn, { r: 0.6, angle: 0, field: 'T20', ideal: 'T20' });
+recordDartHit(turn, { r: 0.3, angle: 0.3, field: '6' });
+check('recordDartHit creates turn.hits on first call', Array.isArray(turn.hits));
+check('entries kept in throw order', turn.hits.length === 2 && turn.hits[0].field === 'T20' && turn.hits[1].field === '6');
+check('CPU-only ideal field stays optional', turn.hits[0].ideal === 'T20' && !('ideal' in turn.hits[1]));
+// Undo invariant (revertPlayerStats pops when dartIndex < hits.length): true
+// for the two thrown darts (indexes 0, 1), false for the MISS filler (2).
+check('undo pop condition matches thrown darts only', 1 < turn.hits.length && !(2 < turn.hits.length));
+
 console.log(failures === 0 ? 'ALL PASS' : failures + ' FAILURES');
 process.exit(failures ? 1 : 0);

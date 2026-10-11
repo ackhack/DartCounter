@@ -267,8 +267,7 @@ function cpuThrowDart() {
   // shown per player at the end of the game (aggregated from history). The
   // turn may have just been pushed to history (3rd dart, bust or checkout).
   const turn = state._currentPlayerTurn || state.history[state.history.length - 1];
-  if (!turn.cpuHits) turn.cpuHits = [];
-  turn.cpuHits.push({ r: hit.r, angle: hit.angle, field: hit.field, ideal: ideal });
+  recordDartHit(turn, { r: hit.r, angle: hit.angle, field: hit.field, ideal: ideal });
 
   // Advance the plan only when the planned dart landed exactly on target;
   // anything else (miss, error dart, bust) invalidates it and the next dart

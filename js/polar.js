@@ -86,3 +86,14 @@ function cpuAimHit(idealToken, difficulty) {
 
   return { r, angle, field: polarToField(r, angle), ideal: idealToken };
 }
+
+// Per-turn record of where darts actually landed — for any player, not just
+// the CPU (human throws will use it too). One entry per thrown dart, kept as
+// a subsequence of turn.throws: the synthetic 'MISS' fillers pushed after a
+// bust carry no entry, and nothing else does. Entry shape is { r, angle,
+// field } plus `ideal` (the field the CPU aimed at) on CPU darts only.
+// Undo pops entries in `revertPlayerStats` (dartIndex < turn.hits.length).
+function recordDartHit(turn, hit) {
+  if (!turn.hits) turn.hits = [];
+  turn.hits.push(hit);
+}

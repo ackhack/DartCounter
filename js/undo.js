@@ -48,11 +48,11 @@ function revertPlayerStats(player, turn) {
   const throwLabel = turn.throws.pop();
   const value = turn.values.pop();
 
-  // CPU darts store their hit coordinates aligned with the throws (bust
+  // Darts store their hit coordinates aligned with the throws (bust
   // auto-miss fillers come after them and carry none) — keep the list in
   // sync so the end-of-game display never shows a ghost dart.
-  if (turn.cpuHits && dartIndex < turn.cpuHits.length) {
-    turn.cpuHits.pop();
+  if (turn.hits && dartIndex < turn.hits.length) {
+    turn.hits.pop();
   }
 
   player.turns--;
