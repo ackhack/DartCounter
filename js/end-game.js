@@ -122,8 +122,58 @@ function renderResultsModal(results) {
     </div>
   `;
 
+  // Per-player hit boards, left of the results.
+  renderEndBoards(results);
+
   // Show modal
   $('#end-modal').classList.remove('hidden');
+}
+
+// Render one dartboard per player (winner first) into #player-boards, with a
+// dot for every thrown dart: recorded hit coordinates where available, else
+// the center of the scored field (see collectBoardDarts). Misses are counted
+// under the board, not plotted.
+function renderEndBoards(results) {
+  const container = $('#player-boards');
+  container.innerHTML = '';
+
+  // A manual End can fire mid-turn — include the in-progress turn too.
+  const turns = state._currentPlayerTurn
+    ? state.history.concat([state._currentPlayerTurn])
+    : state.history;
+
+  results.forEach((p) => {
+    const board = collectBoardDarts(turns, p.id);
+
+    const block = document.createElement('div');
+    block.className = 'player-board';
+
+    const name = document.createElement('div');
+    name.className = 'player-board-name';
+    name.style.color = p.color;
+    name.textContent = p.name;
+
+    const face = document.createElement('div');
+    face.className = 'board-face';
+    board.dots.forEach((d) => {
+      const pos = boardDotPosition(d.r, d.angle);
+      const dot = document.createElement('span');
+      dot.className = 'board-dot';
+      dot.style.left = pos.left + '%';
+      dot.style.top = pos.top + '%';
+      dot.style.backgroundColor = p.color;
+      face.appendChild(dot);
+    });
+
+    const meta = document.createElement('div');
+    meta.className = 'player-board-meta';
+    meta.textContent = board.darts + ' darts · ' + board.misses + (board.misses === 1 ? ' miss' : ' misses');
+
+    block.appendChild(name);
+    block.appendChild(face);
+    block.appendChild(meta);
+    container.appendChild(block);
+  });
 }
 
 // Count down AUTO_RESTART_DELAY seconds in the modal, then start the next

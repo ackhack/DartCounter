@@ -27,6 +27,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 ## Verification
 
 - `node tests/polar.test.js` — plain-Node assertions for the polar board math (`js/polar.js`): point→field mapping, aim points, field→aim→field round trips, and the CPU aim distribution (incl. a cross-check against an independent Cartesian simulation). No test runner; exits non-zero on failure.
+- `node tests/boards.test.js` — plain-Node assertions for the end-screen board helpers (`js/polar.js`): dot-position math and per-player dart aggregation (recorded hit coords win, manual input falls back to field aim points, bust auto-miss fillers excluded).
 - No linter or type checker is configured.
 - Node.js is available on this machine — use `node --check <file>` for JS syntax validation of edited files.
 - No working headless browser exists on this machine (Firefox headless hangs). For visual/UI changes, rely on `node --check`, careful static review, and ask the user to eyeball the app in their already-running browser.
@@ -41,7 +42,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `css/base.css` | Theme, shared layout, screen switching (`.screen.active`). |
 | `css/setup.css` | Setup screen styling. |
 | `css/game.css` | Game screen: cricket scoreboard grid (replaces active card + player list in cricket), player cards, number grid. |
-| `css/modal.css` | End-game modal. |
+| `css/modal.css` | End-game modal: two columns (`#player-boards` left, self-scrolling; results right), board/dot styling, mobile stacked fallback. |
 | `css/stats.css` | Stats screen. |
 | `js/constants.js` | Storage keys, 16-color `PLAYER_COLORS` palette (ordered most-distinct-first), cricket constants (`CRICKET_NUMBERS`, `BULL_NUMBER = 25`, `CRICKET_TARGET_MARKS = 3`), `SHANGHAI_TARGETS` (1–20 + bull), `SCORES_PER_TURN = 3`, `MAX_X01_TURN = 180`, `isX01()`/`isCricket()`/`isShanghai()`, `currentShanghaiTarget()`. |
 | `js/storage.js` | All `localStorage` I/O, stats schema + legacy migration, derived checkout stats, game-history persistence (capped at 50 games). |
@@ -51,13 +52,15 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `js/input.js` | On-screen input: **instant scoring** — pressing a number scores that dart immediately (pending multiplier is consumed and reset to 1). `applyThrowToken(token)` turns tokens (`T20`, `D20`, `20`, `Bull`, `BE`, `0`) into input state; `submitPresetTurn` and `skipToNextPlayer` reuse the normal scoring path. |
 | `js/undo.js` | Per-dart undo: `undoLast` + `revertPlayerStats`, including bust restoration and cricket mark removal. |
 | `js/scoring.js` | Core: `submitScore(forcedMult)`, `processX01Score` (bust/finish), `processCricketScore`, `cricketPlayerFinished`, `cricketMultiplePlayerFinish`, `processShanghaiScore` (instant-win combo), `shanghaiFinalRanking`. |
-| `js/polar.js` | Polar board coordinate system (WDF dimensions in mm, normalized to the 170 mm playable radius; radians, 0 = top of board at the 20, clockwise): `polarToField(r, angle)` (point → throw token, `r > 1` = miss), `fieldToPolar(token)` (aim point, ring center — singles aim at the outer field), `cpuAimHit(idealToken, difficulty)` (uniform random offset in a difficulty-scaled disk → the token actually scored). |
+| `js/polar.js` | Polar board coordinate system (WDF dimensions in mm, normalized to the 170 mm playable radius; radians, 0 = top of board at the 20, clockwise): `polarToField(r, angle)` (point → throw token, `r > 1` = miss), `fieldToPolar(token)` (aim point, ring center — singles aim at the outer field), `cpuAimHit(idealToken, difficulty)` (uniform random offset in a difficulty-scaled disk → the token actually scored), `recordDartHit(turn, hit)` (per-turn hit log), and the end-screen board helpers `boardDotPosition(r, angle)` (polar point → CSS %, using `DARTBOARD_PLAYABLE_FRACTION`) and `collectBoardDarts(turns, playerId)` (aggregate a player's darts → dots + miss count; recorded `turn.hits` win, else field aim point). |
 | `js/cpu.js` | Computer opponent (X01): hardcoded free-darts checkout chart (`CPU_CHECKOUT_CHART`) + per-turn plan, dart accuracy via the polar aim simulation (`cpuAimHit`, scaled by `state.cpuDifficulty`), plus the turn driver (`maybeScheduleCpuDart`/`cpuThrowDart`) that throws via `applyThrowToken` + `submitScore` with a `CPU_THINK_DELAY` pause per dart. |
 | `js/render.js` | `renderGame` — active-player card (hidden in cricket), throw slots, cricket scoreboard grid (`renderCricketMarksGrid` — names, marks, points; replaces the player list in cricket), player cards with last-5-turn history. |
 | `js/stats-screen.js` | Stats screen: per-player, per-mode aggregates; recent-games list. |
-| `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. |
+| `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. `renderEndBoards(results)` fills `#player-boards` (left column of the modal) with one dartboard per player, plotting each thrown dart via `boardDotPosition` (recorded coords, else field aim point). |
 | `js/dartit-bridge.js` | App side of the bridge: `MutationObserver` on `#dartit-bridge-count` triggers `applyDartItUpdate` → `parseDetect` (raw dartit response → throw token) → `applyThrowToken` + `submitScore`. Duplicate values are dropped. |
 | `js/main.js` | `init()` — wires event listeners, renders name suggestions/inputs. |
+| `dartboard.png` | Static end-screen board (1200 px, playable radius = 0.9 of half-size — must match `DARTBOARD_PLAYABLE_FRACTION` in `js/polar.js`). Regenerate with `gen_dartboard.py`. |
+| `gen_dartboard.py` | One-time Pillow generator for `dartboard.png` (classic board + numbered rim). Run `python3 gen_dartboard.py`. |
 
 ### State model (`js/state.js`)
 

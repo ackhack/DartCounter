@@ -219,14 +219,18 @@
   <!-- END GAME MODAL -->
   <div id="end-modal" class="modal-overlay hidden">
     <div class="modal">
-      <h2>Game Over</h2>
-      <div id="results-list" class="results-list"></div>
-      <div id="history-summary" class="history-summary"></div>
-      <div id="auto-restart-countdown" class="auto-restart-countdown"></div>
-      <div class="modal-actions">
-        <button id="replay-btn" class="start-btn">Play Again</button>
-        <button id="cancel-restart-btn" class="secondary-btn">Cancel Auto-Start</button>
-        <button id="back-to-setup-btn" class="secondary-btn">Back to Setup</button>
+      <!-- Per-player dartboards with their hits (rendered by end-game.js) -->
+      <div id="player-boards" class="modal-boards"></div>
+      <div class="modal-main">
+        <h2>Game Over</h2>
+        <div id="results-list" class="results-list"></div>
+        <div id="history-summary" class="history-summary"></div>
+        <div id="auto-restart-countdown" class="auto-restart-countdown"></div>
+        <div class="modal-actions">
+          <button id="replay-btn" class="start-btn">Play Again</button>
+          <button id="cancel-restart-btn" class="secondary-btn">Cancel Auto-Start</button>
+          <button id="back-to-setup-btn" class="secondary-btn">Back to Setup</button>
+        </div>
       </div>
     </div>
   </div>

@@ -16,16 +16,94 @@
   background: var(--bg-secondary);
   border-radius: var(--radius);
   padding: 1.5rem;
-  /* Hug the content width (a flex item) instead of a fixed full width, so a
-     short results list gets a narrower box. Capped at the old 440px, with a
-     floor so it never looks cramped. */
+  /* Two columns: the per-player hit boards on the left, the results on the
+     right. Hug the content width so a short results list stays narrow. */
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
   width: fit-content;
   min-width: 18rem;
-  max-width: 440px;
+  max-width: 840px;
   max-height: 80vh;
-  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border);
+}
+
+.modal-main {
+  flex: 1;
+  min-width: 0;
+  max-height: 74vh;
+  overflow-y: auto;
+}
+
+/* Boards column scrolls on its own (up to 8 players) so the results and
+   action buttons on the right never get pushed off-screen. */
+.modal-boards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex-shrink: 0;
+  max-height: 74vh;
+  overflow-y: auto;
+}
+
+.player-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.player-board-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The static board image (gen_dartboard.py); dots are positioned over it. */
+.board-face {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: url('../dartboard.png') center / 100% 100% no-repeat;
+}
+
+.board-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.player-board-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Small screens: stack the boards under the results, wrapped in a row. */
+@media (max-width: 720px) {
+  .modal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-boards {
+    order: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 .modal h2 {
