@@ -153,8 +153,6 @@
   //      reveals a menu containing a span with the text 'Reset Detection'
   //   3. press that span's grandparent (the menu button)
   const RECAL_GRACE_MS = 5000;         // ignore status changes right after a reset
-  const RECAL_RESET_TIMEOUT_MS = 15000; // how long to wait for the reset menu
-  const RECAL_CALIB_TIMEOUT_MS = 60000; // give up on a stuck calibration run
   const RECAL_MUT_CONFIG = {
     childList: true,
     subtree: false,

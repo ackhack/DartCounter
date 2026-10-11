@@ -42,37 +42,59 @@ function applyDartItUpdate() {
   lastDartItValue = newVal;
   
   const dat = parseDetect(JSON.parse(newVal));
-  console.log('Received from DartIt ' + dat)
+  console.log('Received from DartIt ' + (dat ? dat.token : null))
   if (dat != null) {
-    applyThrowToken(dat);
+    const dartsBefore = state.throwLog.length;
+    applyThrowToken(dat.token);
     submitScore();
+
+    // Record where the dart actually landed (turn.hits, the same path as
+    // the CPU) so the end-of-game boards plot it. Only when this dart was
+    // really scored — submitScore can bail (game over, finished player).
+    if (dat.hit && state.throwLog.length === dartsBefore + 1) {
+      const turn = state._currentPlayerTurn || state.history[state.history.length - 1];
+      recordDartHit(turn, { r: dat.hit.r, angle: dat.hit.angle, field: dat.token });
+    }
   }
 }
 
-// Turn a raw detect response into a throw token that applyThrowToken()
-// (js/input.js) understands, e.g. "T11", "D20", "15", "Bull", "BE", "0".
-// Returns null for anything unrecognised so we never score a bad throw.
+// Turn a raw detect response into the throw token that applyThrowToken()
+// (js/input.js) understands — "T11", "D20", "15", "Bull", "BE", "0" — plus
+// the impact point converted to the app's polar system (dartitToPolar,
+// js/polar.js) when the response carries board coordinates.
+// Returns { token, hit } (hit = { r, angle }, or null when the coordinates
+// are missing/unusable), or null for anything unrecognised so we never
+// score a bad throw.
+// Sample: {"numbers":5,"fields":"S","p_board_x":12.64090633392334,"p_board_y":5.5260701179504395,"p_board_z":0,"p_above_x":13.195976257324219,"p_above_y":5.719679355621338,"p_above_z":11.985591888427734}
 function parseDetect(data) {
   if (!data) return null;
   const fields = String(data.fields || '').toUpperCase();
   const num = data.numbers;
 
+  let token = null;
+
   // Bull / bullseye — explicit field indicators win; numbers:25 is only the
   // fallback when fields doesn't already name the ring.
-  if (fields === 'BE' || fields === 'BULLSEYE' || (num === 25 && fields === 'D')) return 'BE';
-  if (fields === 'B' || num === 25) return 'Bull';
-
+  if (fields === 'BE' || fields === 'BULLSEYE' || (num === 25 && fields === 'D')) token = 'BE';
+  else if (fields === 'B' || num === 25) token = 'Bull';
   // Miss
-  if (fields === '0' || fields === 'M' || fields === 'MISS' || num === 0) return '0';
-
+  else if (fields === '0' || fields === 'M' || fields === 'MISS' || num === 0) token = '0';
   // Numbered sections (single / double / triple)
-  if (Number.isInteger(num) && num >= 1 && num <= 20) {
-    if (fields === 'T') return 'T' + num;
-    if (fields === 'D') return 'D' + num;
-    return String(num);
+  else if (Number.isInteger(num) && num >= 1 && num <= 20) {
+    if (fields === 'T') token = 'T' + num;
+    else if (fields === 'D') token = 'D' + num;
+    else token = String(num);
   }
 
-  return null;
+  if (token == null) return null;
+
+  // Impact point in the board plane (cm from the board center). Missing or
+  // non-numeric coordinates leave hit null — the dart still scores.
+  let hit = null;
+  if (Number.isFinite(data.p_board_x) && Number.isFinite(data.p_board_y)) {
+    hit = dartitToPolar(data.p_board_x, data.p_board_y);
+  }
+  return { token: token, hit: hit };
 }
 
 // --- manual recalibration ---

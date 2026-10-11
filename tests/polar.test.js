@@ -134,6 +134,48 @@ check('BE aim stays within maxR(50) = 0.525', beOk);
 check('maxR(0) = 1.0', Math.abs((1.0 - (1.0 - 0.05) * 0) - 1.0) < 1e-12);
 check('maxR(100) = 0.05', Math.abs((1.0 - (1.0 - 0.05) * 1) - 0.05) < 1e-12);
 
+// --- dartitToPolar: camera board-plane coords -> polar (calibration lock) ---
+// Real detect responses from logs.txt (2026-10-11): p_board_x/p_board_y in cm
+// plus the field DartIt scored. Every sample must round-trip through
+// dartitToPolar -> polarToField back to the scored token. If the dartit
+// calibration changes and this fails, re-fit DARTIT_ANGLE_OFFSET.
+const DARTIT_SAMPLES = [
+  { x: 15.283300399780273, y: -0.2934725880622864, token: '1' },
+  { x: 7.998042106628418, y: 6.689147472381592, token: 'T12' },
+  { x: 12.64090633392334, y: 5.5260701179504395, token: '5' },
+  { x: -6.8738112449646, y: 13.404237747192383, token: '8' },
+  { x: -5.696840286254883, y: 4.511870861053467, token: '16' },
+  { x: -1.231635570526123, y: 0.627740204334259, token: 'Bull' },
+  { x: -10.669401168823242, y: -5.13859224319458, token: '17' },
+  { x: -0.9701459407806396, y: -5.012481212615967, token: '10' },
+  { x: -2.0610594749450684, y: -8.913187980651855, token: '10' },
+  { x: 0.4745044410228729, y: -11.32351016998291, token: '6' },
+  { x: 12.121176719665527, y: -8.069053649902344, token: '18' },
+  { x: 11.1888427734375, y: -1.911379337310791, token: '1' },
+  { x: 3.273460865020752, y: -19.088428497314453, token: '0' },
+  { x: -1.2101376056671143, y: 20.276762008666992, token: '0' },
+  { x: -19.815387725830078, y: -2.803237199783325, token: '0' },
+  { x: 13.806768417358398, y: 3.7697882652282715, token: '20' },
+  { x: 16.846534729003906, y: 2.9170162677764893, token: '0' },
+  { x: 17.96078872680664, y: 3.741882562637329, token: '0' },
+];
+let dartitOk = true;
+for (const s of DARTIT_SAMPLES) {
+  const p = dartitToPolar(s.x, s.y);
+  const got = polarToField(p.r, p.angle);
+  if (got !== s.token) {
+    dartitOk = false;
+    console.log('  dartit round trip broken: ' + JSON.stringify(s) + ' -> ' + got);
+  }
+}
+check('dartitToPolar round trips all logged throws', dartitOk);
+check('dartit miss has r > 1', dartitToPolar(16.846534729003906, 2.9170162677764893).r > 1);
+check('dartit angle is normalized to [0, 2PI)',
+  DARTIT_SAMPLES.every(s => {
+    const a = dartitToPolar(s.x, s.y).angle;
+    return a >= 0 && a < TAU;
+  }));
+
 // --- recordDartHit: per-turn hit storage shared by CPU and (later) players ---
 const turn = { throws: ['T20', 'T20 (BUST)', 'MISS'] };
 recordDartHit(turn, { r: 0.6, angle: 0, field: 'T20', ideal: 'T20' });
