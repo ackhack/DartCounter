@@ -216,20 +216,6 @@ function cpuNextPlannedDart(player) {
   return cpuPlan ? cpuPlan[1][0] : 'T20';
 }
 
-// A botched version of the intended dart: mostly a miss, otherwise a single
-// on (or near) the intended number.
-function cpuErrorDart(ideal) {
-  const roll = Math.random() * 100;
-  if (roll < 45) return '0';
-  if (ideal === 'Bull' || ideal === 'BE') {
-    return roll < 85 ? 'Bull' : '0';
-  }
-  const n = parseInt(ideal.replace(/^[TD]/, ''), 10);
-  if (roll < 75) return String(n);
-  const offset = (1 + Math.floor(Math.random() * 3)) * (Math.random() < 0.5 ? -1 : 1);
-  return String(Math.min(20, Math.max(1, n + offset)));
-}
-
 // --- Turn driver ---
 // The CPU throws through applyThrowToken + submitScore (the same path as the
 // DartIt bridge), so history, bust handling and undo all stay consistent. A
@@ -270,13 +256,19 @@ function cpuThrowDart() {
   if (state.throwCount >= SCORES_PER_TURN) return;
 
   const ideal = cpuNextPlannedDart(player);
-  const hitChance = CPU_BASE_HIT_CHANCE +
-    (CPU_MAX_HIT_CHANCE - CPU_BASE_HIT_CHANCE) * (state.cpuDifficulty / 100);
-  const token = Math.random() < hitChance ? ideal : cpuErrorDart(ideal);
+  const hit = cpuAimHit(ideal, state.cpuDifficulty);
+  const token = hit.field;
 
   const preScore = player.score;
   applyThrowToken(token);
   submitScore();
+
+  // Record where this dart actually landed so the hit coordinates can be
+  // shown per player at the end of the game (aggregated from history). The
+  // turn may have just been pushed to history (3rd dart, bust or checkout).
+  const turn = state._currentPlayerTurn || state.history[state.history.length - 1];
+  if (!turn.cpuHits) turn.cpuHits = [];
+  turn.cpuHits.push({ r: hit.r, angle: hit.angle, field: hit.field, ideal: ideal });
 
   // Advance the plan only when the planned dart landed exactly on target;
   // anything else (miss, error dart, bust) invalidates it and the next dart
