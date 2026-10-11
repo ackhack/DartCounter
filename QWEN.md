@@ -42,7 +42,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `css/base.css` | Theme, shared layout, screen switching (`.screen.active`). |
 | `css/setup.css` | Setup screen styling. |
 | `css/game.css` | Game screen: cricket scoreboard grid (replaces active card + player list in cricket), player cards, number grid. |
-| `css/modal.css` | End-game modal: two columns (`#player-boards` left, self-scrolling; results right), board/dot styling, mobile stacked fallback. |
+| `css/modal.css` | End-game modal: full-screen panel — the `#player-boards` grid fills the left half at any player count: `renderEndBoards` sets `--board-cols`/`--board-rows` (2→2×1, 3→3×1, 4→2×2, 5–6→3×2, 7–8→3×3) and `--board-size` (vw/vh calc) scales the boards to fill it; results centered in the right half; dots size as % of the board face; mobile: full-width field below the results. |
 | `css/stats.css` | Stats screen. |
 | `js/constants.js` | Storage keys, 16-color `PLAYER_COLORS` palette (ordered most-distinct-first), cricket constants (`CRICKET_NUMBERS`, `BULL_NUMBER = 25`, `CRICKET_TARGET_MARKS = 3`), `SHANGHAI_TARGETS` (1–20 + bull), `SCORES_PER_TURN = 3`, `MAX_X01_TURN = 180`, `isX01()`/`isCricket()`/`isShanghai()`, `currentShanghaiTarget()`. |
 | `js/storage.js` | All `localStorage` I/O, stats schema + legacy migration, derived checkout stats, game-history persistence (capped at 50 games). |
@@ -56,7 +56,7 @@ python3 -m http.server 8080    # then http://localhost:8080/
 | `js/cpu.js` | Computer opponent (X01): hardcoded free-darts checkout chart (`CPU_CHECKOUT_CHART`) + per-turn plan, dart accuracy via the polar aim simulation (`cpuAimHit`, scaled by `state.cpuDifficulty`), plus the turn driver (`maybeScheduleCpuDart`/`cpuThrowDart`) that throws via `applyThrowToken` + `submitScore` with a `CPU_THINK_DELAY` pause per dart. |
 | `js/render.js` | `renderGame` — active-player card (hidden in cricket), throw slots, cricket scoreboard grid (`renderCricketMarksGrid` — names, marks, points; replaces the player list in cricket), player cards with last-5-turn history. |
 | `js/stats-screen.js` | Stats screen: per-player, per-mode aggregates; recent-games list. |
-| `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. `renderEndBoards(results)` fills `#player-boards` (left column of the modal) with one dartboard per player, plotting each thrown dart via `boardDotPosition` (recorded coords, else field aim point). |
+| `js/end-game.js` | `endGame` — ranks players, updates persistent stats, saves game to history, renders results modal. `renderEndBoards(results)` fills `#player-boards` (left side of the modal) with one dartboard per player, sets `--board-cols`/`--board-rows` for the roster size, and plots each thrown dart via `boardDotPosition` (recorded coords, else field aim point). |
 | `js/dartit-bridge.js` | App side of the bridge: `MutationObserver` on `#dartit-bridge-count` triggers `applyDartItUpdate` → `parseDetect` (raw dartit response → throw token) → `applyThrowToken` + `submitScore`. Duplicate values are dropped. |
 | `js/main.js` | `init()` — wires event listeners, renders name suggestions/inputs. |
 | `dartboard.png` | Static end-screen board (1200 px, playable radius = 0.9 of half-size — must match `DARTBOARD_PLAYABLE_FRACTION` in `js/polar.js`). Regenerate with `gen_dartboard.py`. |

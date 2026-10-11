@@ -137,6 +137,13 @@ function renderEndBoards(results) {
   const container = $('#player-boards');
   container.innerHTML = '';
 
+  // Size the field for the actual player count so it always fills the left
+  // side: fewer boards -> fewer rows/columns -> bigger boards. CSS
+  // (--board-size in modal.css) derives the size from these.
+  const cols = results.length === 4 ? 2 : Math.min(3, results.length);
+  container.style.setProperty('--board-cols', String(cols));
+  container.style.setProperty('--board-rows', String(Math.ceil(results.length / cols)));
+
   // A manual End can fire mid-turn — include the in-progress turn too.
   const turns = state._currentPlayerTurn
     ? state.history.concat([state._currentPlayerTurn])

@@ -13,18 +13,15 @@
 }
 
 .modal {
+  /* Full-screen end panel: a 3×3 field of hit boards fills the left side
+     of the screen, the results sit in the right half. */
   background: var(--bg-secondary);
   border-radius: var(--radius);
   padding: 1.5rem;
-  /* Two columns: the per-player hit boards on the left, the results on the
-     right. Hug the content width so a short results list stays narrow. */
   display: flex;
-  align-items: flex-start;
   gap: 1.25rem;
-  width: fit-content;
-  min-width: 18rem;
-  max-width: 840px;
-  max-height: 80vh;
+  width: 100%;
+  height: 100%;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border);
 }
@@ -32,31 +29,44 @@
 .modal-main {
   flex: 1;
   min-width: 0;
-  max-height: 74vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow-y: auto;
 }
 
-/* Boards column scrolls on its own (up to 8 players) so the results and
-   action buttons on the right never get pushed off-screen. */
+/* The field should take up the complete left side of the screen at any
+   player count. renderEndBoards sets --board-cols / --board-rows for the
+   actual roster (2 -> 2x1, 3 -> 3x1, 4 -> 2x2, 5-6 -> 3x2, 7-8 -> 3x3) and
+   the board size is the smaller of what fits the columns into the half
+   width and the rows into the full height — each row also carries a name +
+   meta line (~3.4rem), 5rem covers overlay + modal padding. */
 .modal-boards {
-  display: flex;
-  flex-direction: column;
+  --board-cols: 3;
+  --board-rows: 3;
+  --board-size: min(
+    calc((50vw - 5rem - (var(--board-cols) - 1) * 0.9rem) / var(--board-cols)),
+    calc((100vh - 5rem - (var(--board-rows) - 1) * 0.9rem - var(--board-rows) * 3.4rem) / var(--board-rows))
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols), var(--board-size));
   gap: 0.9rem;
-  flex-shrink: 0;
-  max-height: 74vh;
-  overflow-y: auto;
+  justify-content: center;
+  align-content: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .player-board {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 .player-board-name {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 1rem;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -66,43 +76,47 @@
 /* The static board image (gen_dartboard.py); dots are positioned over it. */
 .board-face {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: var(--board-size);
+  height: var(--board-size);
   border-radius: 50%;
   border: 2px solid var(--border);
   background: url('../dartboard.png') center / 100% 100% no-repeat;
 }
 
+/* Dots scale with the board (percent of the face). */
 .board-dot {
   position: absolute;
-  width: 9px;
-  height: 9px;
+  width: 5.5%;
+  height: 5.5%;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  border: 1.5px solid rgba(0, 0, 0, 0.65);
+  border: 2px solid rgba(0, 0, 0, 0.65);
   pointer-events: none;
 }
 
 .player-board-meta {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* Small screens: stack the boards under the results, wrapped in a row. */
+/* Small screens: stack the boards under the results. The field is full
+   width there, so only the width term constrains the board size. */
 @media (max-width: 720px) {
   .modal {
     flex-direction: column;
-    align-items: stretch;
+    overflow-y: auto;
+  }
+
+  .modal-main {
+    overflow-y: visible;
   }
 
   .modal-boards {
     order: 2;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-height: none;
-    overflow-y: visible;
+    flex: none;
+    --board-size: calc((100vw - 5rem - (var(--board-cols) - 1) * 0.9rem) / var(--board-cols));
+    align-content: auto;
   }
 }
 
