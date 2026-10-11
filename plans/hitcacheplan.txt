@@ -1,0 +1,9 @@
+next we want to save all the hits of the players to the local storage per game mode.
+
+we also want to display them in the statistics board in the same style as in the end screen.
+
+therefor we need to refactor the statistics board.
+
+the users should now be a list where the top to bottom entries can be expanded to show the players statistics.
+
+the game history can also be its own entry in that list at the bottom of it.

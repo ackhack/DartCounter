@@ -1,0 +1,10 @@
+now implement bots for the other gamemodes aswell.
+
+generally at cricket and shanghai they want to aim at triple of the suggest number.
+
+shanghai has special rules for aiming, 
+you always want to aim for triple unless a instant win is possible.
+first throw it is always possible.
+second throw is only possible if first hit single, double or triple of the number. aim for the highest multiplier you haven't hit yet.
+third throw is only possible if first and second throw are two different hits of the three multipliers, aim for last then. (1&2=3, 2&3=1, 1&3=2)
+otherwise always aim for triple for the most points.
