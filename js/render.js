@@ -42,19 +42,19 @@ function renderGame() {
     $('#active-player-score').textContent = player.runs;
   }
 
-  // Checkout hint — when the remaining X01 score is on the standard checkout
-  // chart (finishable in ≤ 3 darts), show the exact darts to throw. The score
-  // updates per dart, so the hint follows the live score.
-  const checkoutEl = $('#active-player-checkout');
-  const checkout = isX01() ? CPU_CHECKOUT_CHART[player.score] : null;
-if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
-    checkoutEl.innerHTML = checkout
-      .map(d => `<span class="checkout-dart">${d}</span>`)
-      .join('<span class="checkout-sep">→</span>');
-    checkoutEl.style.display = '';
+  // Mode-specific display — top of the card's right column.
+  // X01: the exact darts to throw when the remaining score is on the standard
+  // checkout chart (CPU_CHECKOUT_CHART in cpu.js); the score updates per dart,
+  // so the hint follows the live score.
+  // Shanghai: the current target — the only number that scores this round.
+  // Cricket: the number to throw (see cricketSuggestedNumber).
+  const modeDisplayEl = $('#active-player-mode-display');
+  const disp = getModeSpecificDisplay(player);
+  if (disp) {
+    modeDisplayEl.style.display = '';
+    modeDisplayEl.innerHTML = disp;
   } else {
-    checkoutEl.innerHTML = '';
-    checkoutEl.style.display = 'none';
+    modeDisplayEl.style.display = 'none';
   }
 
   // Throws display — use in-progress turn throws if available
@@ -85,6 +85,52 @@ if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
     // Player cards
     renderPlayers();
   }
+}
+
+function getModeSpecificDisplay(player) {
+  if (isX01()) {
+    const checkout = CPU_CHECKOUT_CHART[player.score];
+    if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
+      return checkout
+        .map(d => `<span class="checkout-dart">${d}</span>`)
+        .join('<span class="checkout-sep">→</span>');
+    }
+  } else if (isShanghai()) {
+    return modeTargetHtml(currentShanghaiTarget());
+  } else if (isCricket()) {
+    const target = cricketSuggestedNumber(player);
+    if (target !== null) {
+      return modeTargetHtml(target);
+    }
+  }
+  return null;
+}
+
+// The single number to throw, shown large (the bull as "Bull") — used by
+// the Shanghai target and the cricket suggestion.
+function modeTargetHtml(n) {
+  return `<span class="mode-target">${n === BULL_NUMBER ? 'Bull' : n}</span>`;
+}
+
+// Cricket — the number the active player should throw:
+// behind on points: the highest number not closed by every player (the board
+// still has work on it, so keep closing from the top).
+// leading on points: the highest number the player has not hit 3 times yet.
+// Points are compared among the players still in the game (finished players
+// are out of the race). null = nothing to show (e.g. the player has closed
+// every number for themselves, or the board is fully closed).
+function cricketSuggestedNumber(player) {
+  const remaining = state.players.filter(p => !p.finished);
+  const maxRuns = remaining.length > 0 ? Math.max(...remaining.map(p => p.runs)) : 0;
+  const leading = player.runs >= maxRuns;
+  for (let i = CRICKET_NUMBERS.length - 1; i >= 0; i--) {
+    const n = CRICKET_NUMBERS[i];
+    const done = leading
+      ? (player.marks[n] || 0) >= CRICKET_TARGET_MARKS
+      : cricketAllPlayersClosed(n);
+    if (!done) return n;
+  }
+  return null;
 }
 
 // Shanghai: highlight the one number that scores this round and dim the rest.
