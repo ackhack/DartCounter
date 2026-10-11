@@ -164,6 +164,32 @@
   margin-top: 0.2rem;
 }
 
+/* Checkout hint — the exact darts to throw when the remaining X01 score is
+   on the standard checkout chart (CPU_CHECKOUT_CHART in cpu.js). Filled and
+   toggled in renderGame(); hidden otherwise. */
+.checkout-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.checkout-dart {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.5rem;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.4rem);
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.checkout-sep {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
 /* Throws Row */
 .throws-row {
   display: flex;

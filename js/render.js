@@ -34,12 +34,27 @@ function renderGame() {
   activeNameEl.style.color = player.color || '';
   $('#active-player-card').style.setProperty('--player-color', player.color || 'var(--border)');
 
-  // Active player points
-  if (isX01()) {
-    // A finished X01 player sits on 0 — show a party emoji instead.
-    $('#active-player-score').textContent = player.score === 0 ? '🎉' : player.score;
+  if (player.finished) {
+    $('#active-player-score').textContent = '🎉';
+  } else if (isX01()) {
+    $('#active-player-score').textContent = player.score;
   } else {
     $('#active-player-score').textContent = player.runs;
+  }
+
+  // Checkout hint — when the remaining X01 score is on the standard checkout
+  // chart (finishable in ≤ 3 darts), show the exact darts to throw. The score
+  // updates per dart, so the hint follows the live score.
+  const checkoutEl = $('#active-player-checkout');
+  const checkout = isX01() ? CPU_CHECKOUT_CHART[player.score] : null;
+if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
+    checkoutEl.innerHTML = checkout
+      .map(d => `<span class="checkout-dart">${d}</span>`)
+      .join('<span class="checkout-sep">→</span>');
+    checkoutEl.style.display = '';
+  } else {
+    checkoutEl.innerHTML = '';
+    checkoutEl.style.display = 'none';
   }
 
   // Throws display — use in-progress turn throws if available
@@ -58,9 +73,9 @@ function renderGame() {
     }
   }
 
-  renderShanghaiNumberHighlight();
-
   renderThrowLog();
+
+  renderShanghaiNumberHighlight();
 
   if (isCricket()) {
     // Player list is hidden in cricket — the scoreboard carries names,
