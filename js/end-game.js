@@ -129,10 +129,14 @@ function renderResultsModal(results) {
   $('#end-modal').classList.remove('hidden');
 }
 
-// Render one dartboard per player (winner first) into #player-boards, with a
-// dot for every thrown dart: recorded hit coordinates where available, else
-// the center of the scored field (see collectBoardDarts). Misses are counted
-// under the board, not plotted.
+// Render one dartboard per player (winner first) into #player-boards. Every
+// thrown dart gets a dot colored by the ideal throw it aimed at (recorded
+// aim for CPU darts, else the scored field — see collectBoardDarts), and
+// every ideal field gets a translucent zone disk in the same color, centered
+// on the aim point and reaching the farthest dart that aimed at it (see
+// boardZones). Dots: recorded hit coordinates where available, else the
+// center of the scored field. Misses are counted under the board, not
+// plotted.
 function renderEndBoards(results) {
   const container = $('#player-boards');
   container.innerHTML = '';
@@ -162,14 +166,44 @@ function renderEndBoards(results) {
 
     const face = document.createElement('div');
     face.className = 'board-face';
+
+    // Translucent zone disk per ideal field, appended first so the dots sit
+    // on top: centered on the field's aim point, reaching the farthest dart
+    // that aimed at it (see boardZones).
+    boardZones(board.dots).forEach((z) => {
+      const pos = boardDotPosition(z.r, z.angle);
+      const zone = document.createElement('span');
+      zone.className = 'board-zone';
+      zone.style.left = pos.left + '%';
+      zone.style.top = pos.top + '%';
+      const size = 2 * z.radius * 50 * DARTBOARD_PLAYABLE_FRACTION;
+      zone.style.width = size + '%';
+      zone.style.height = size + '%';
+      zone.style.backgroundColor = fieldColor(z.ideal, 0.18);
+      zone.style.borderColor = fieldColor(z.ideal, 0.5);
+      face.appendChild(zone);
+    });
+
     board.dots.forEach((d) => {
       const pos = boardDotPosition(d.r, d.angle);
       const dot = document.createElement('span');
       dot.className = 'board-dot';
       dot.style.left = pos.left + '%';
       dot.style.top = pos.top + '%';
-      dot.style.backgroundColor = p.color;
+      dot.style.backgroundColor = fieldColor(d.ideal);
       face.appendChild(dot);
+    });
+
+    // Small x on each zone's center (the ideal aim point), appended last so
+    // it stays visible even when a dot lands exactly on the aim.
+    boardZones(board.dots).forEach((z) => {
+      const pos = boardDotPosition(z.r, z.angle);
+      const x = document.createElement('span');
+      x.className = 'board-aim-x';
+      x.style.left = pos.left + '%';
+      x.style.top = pos.top + '%';
+      x.style.color = fieldColor(z.ideal);
+      face.appendChild(x);
     });
 
     const meta = document.createElement('div');

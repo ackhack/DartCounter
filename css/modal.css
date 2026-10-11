@@ -83,6 +83,32 @@
   background: url('../dartboard.png') center / 100% 100% no-repeat;
 }
 
+/* Translucent zone disk per ideal field (renderEndBoards): centered on the
+   field's aim point, sized to reach the farthest dart that aimed at it.
+   Appended to the face before the dots, so the dots sit on top. */
+.board-zone {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid;
+  pointer-events: none;
+}
+
+/* Small x marking a zone's center (the ideal aim point, renderEndBoards).
+   Two diagonal gradients with a fixed 2px stroke, so it scales with the
+   board face but keeps a crisp line. Appended after the dots, so it sits
+   on top. */
+.board-aim-x {
+  position: absolute;
+  width: 6%;
+  height: 6%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 2px), currentColor calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom right, transparent calc(50% - 2px), currentColor calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px));
+}
+
 /* Dots scale with the board (percent of the face). */
 .board-dot {
   position: absolute;

@@ -131,6 +131,33 @@ function boardDotPosition(r, angle) {
   };
 }
 
+// Color for an ideal throw (the field a dart aimed at): hue by sector
+// position (the 20 sectors step 18 deg around the wheel) and lightness by
+// ring — doubles dark, singles mid, triples light — so one sector reads as
+// a three-step ramp. Bull and bulls-eye keep the board's own bull colors
+// (red / gold); they sit at the center, far from any numbered sector, so
+// the hue overlap with a sector is never visible in practice.
+// With an alpha argument the color comes back as hsla() for the translucent
+// zone disks.
+function fieldColor(token, alpha) {
+  const t = String(token).toUpperCase();
+  let h, s, l;
+  if (t === 'BULL') {
+    h = 0; s = 85; l = 60;
+  } else if (t === 'BE') {
+    h = 48; s = 100; l = 60;
+  } else {
+    const m = t.match(/^([TD]?)(\d+)$/);
+    h = DARTBOARD_ORDER.indexOf(parseInt(m[2], 10)) * 18;
+    if (m[1] === 'T') { s = 100; l = 72; }
+    else if (m[1] === 'D') { s = 85; l = 42; }
+    else { s = 75; l = 58; }
+  }
+  return alpha === undefined
+    ? 'hsl(' + h + ', ' + s + '%, ' + l + '%)'
+    : 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + alpha + ')';
+}
+
 // Aggregate every dart one player threw, for the end-screen boards.
 // `turns` is the list of turn objects (state.history, optionally plus the
 // in-progress _currentPlayerTurn). Recorded hit coordinates win when present
@@ -138,6 +165,10 @@ function boardDotPosition(r, angle) {
 // back to the center of the field they scored, so boards are filled for
 // manual input too. Bust auto-miss fillers ('MISS') were never thrown and
 // are skipped; real misses count in `misses` but get no dot.
+// Each dot carries `ideal` — the field the dart aimed at: the recorded aim
+// on CPU darts, else the field it scored (manual darts are plotted at the
+// field center, and bridge darts have no recorded aim). fieldColor() keys
+// off it for the dot/zone colors.
 function collectBoardDarts(turns, playerId) {
   const dots = [];
   let darts = 0;
@@ -153,15 +184,49 @@ function collectBoardDarts(turns, playerId) {
 
       const hit = turn.hits && hitIdx < turn.hits.length ? turn.hits[hitIdx++] : null;
       if (hit) {
-        if (hit.r <= 1) dots.push({ r: hit.r, angle: hit.angle });
+        if (hit.r <= 1) dots.push({ r: hit.r, angle: hit.angle, ideal: hit.ideal || hit.field });
         else misses++;
       } else if (fieldLabel === 'Miss') {
         misses++;
       } else {
         const aim = fieldToPolar(fieldLabel);
-        dots.push({ r: aim.r, angle: aim.angle });
+        dots.push({ r: aim.r, angle: aim.angle, ideal: fieldLabel });
       }
     }
   }
   return { dots: dots, darts: darts, misses: misses };
+}
+
+// How far beyond the farthest dart a zone disk extends (board units,
+// 1 = playable edge) — a bit over one dot radius, so even a lone dart
+// landing exactly on the aim point gets a visible halo.
+const BOARD_ZONE_PADDING = 0.04;
+
+// The translucent zone disks for the end-screen boards: one per ideal field
+// that at least one plotted dot aimed at. Each disk is centered on the
+// field's aim point (the center of the ideal throw) and its radius reaches
+// the farthest dot that aimed at it, so the disk includes all of that
+// ideal's throws. Returns [{ ideal, r, angle, radius }] in board units, in
+// first-seen order of the ideals.
+function boardZones(dots) {
+  const groups = {};
+  dots.forEach((d) => {
+    (groups[d.ideal] = groups[d.ideal] || []).push(d);
+  });
+
+  const zones = [];
+  Object.keys(groups).forEach((ideal) => {
+    const aim = fieldToPolar(ideal);
+    const ax = aim.r * Math.sin(aim.angle);
+    const ay = aim.r * Math.cos(aim.angle);
+    let farthest = 0;
+    groups[ideal].forEach((d) => {
+      farthest = Math.max(farthest, Math.hypot(
+        d.r * Math.sin(d.angle) - ax,
+        d.r * Math.cos(d.angle) - ay
+      ));
+    });
+    zones.push({ ideal: ideal, r: aim.r, angle: aim.angle, radius: farthest + BOARD_ZONE_PADDING });
+  });
+  return zones;
 }
