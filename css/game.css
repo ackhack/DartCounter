@@ -396,6 +396,11 @@
   min-width: 2ch;
 }
 
+/* Tied for most points — the deciding points get the highlight color */
+.marks-grid-points.leading {
+  color: var(--warning);
+}
+
 /* Per-player history — hidden entirely while the player has no turns yet */
 .player-history {
   display: flex;

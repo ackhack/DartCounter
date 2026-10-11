@@ -181,6 +181,9 @@ function renderCricketMarksGrid() {
   const grid = $('#cricket-marks-grid');
   if (!grid) return;
 
+  // Every player tied for most points gets the highlighted points color.
+  const maxRuns = Math.max(0, ...state.players.filter(p => !p.finished).map(p => p.runs));
+
   let html = '<span class="marks-grid-corner"></span>';
   CRICKET_NUMBERS.forEach(n => {
     html += `<span class="marks-grid-num">${n === BULL_NUMBER ? 'B' : n}</span>`;
@@ -199,7 +202,7 @@ function renderCricketMarksGrid() {
       }
       html += `<span class="marks-grid-cell">${dots}</span>`;
     });
-    html += `<span class="marks-grid-points">${p.runs}</span>`;
+    html += `<span class="marks-grid-points${p.runs === maxRuns ? ' leading' : ''}">${p.runs}</span>`;
   });
 
   grid.innerHTML = html;
