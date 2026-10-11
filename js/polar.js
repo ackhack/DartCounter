@@ -68,10 +68,11 @@ function fieldToPolar(token) {
 // The detect response reports the impact point as p_board_x / p_board_y in
 // cm, origin at the board center, y up. The DartIt calibration axes are
 // rotated against the physical board, so a constant angle offset is needed.
-// Calibrated against real throws (logs.txt, 2026-10-11): the offset window
-// that reproduces every scored sector is 78.7-82.1 deg; 80.4 deg is its
-// midpoint. If the dartit calibration changes, re-fit from a fresh log.
-const DARTIT_ANGLE_OFFSET = 1.402826; // 80.376 deg
+// Calibrated against real throws (samples.txt, 2026-10-11, 63 darts): the
+// offset window that reproduces every scored sector is 80.3-81.6 deg;
+// 80.9 deg is its midpoint. If the dartit calibration changes, re-fit from
+// a fresh log.
+const DARTIT_ANGLE_OFFSET = 1.412713; // 80.943 deg
 
 function dartitToPolar(xCm, yCm) {
   const r = Math.hypot(xCm, yCm) / (BOARD_PLAYABLE_RADIUS_MM / 10);
