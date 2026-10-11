@@ -167,20 +167,22 @@
 
 /* Mode-specific display — top of the right column, filled in renderGame():
    X01 checkout darts, the number to throw in Shanghai and cricket.
-   The min-height holds the line so the throws row below doesn't jump when
-   the content appears or disappears. */
+   Grows to take all the space it may: the height is capped at the size of
+   the big score (#active-player-score) — the throws row below has the same
+   cap, so the two boxes share the column without getting too big. */
 .mode-display {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.3rem;
-  min-height: 2rem;
+  width: 100%;
+  height: clamp(3.5rem, 3rem + 2.5vw, 7rem); /* = .player-score-large's size */
 }
 
 /* The number to throw — Shanghai's current target or cricket's suggestion,
    as a big number ("Bull" for 25). */
 .mode-target {
-  font-size: clamp(2.5rem, 2rem + 1.5vw, 4rem);
+  font-size: clamp(2.1rem, 1.8rem + 1.5vw, 4.2rem); /* 60% of the score's clamp */
   font-weight: 800;
   line-height: 1;
   color: var(--warning);
@@ -193,25 +195,29 @@
 .checkout-sep {
   color: var(--text-muted);
   font-weight: 700;
-  font-size: 2rem;
+  font-size: clamp(1.3rem, 1.1rem + 0.9vw, 2.5rem);
 }
 
-/* Throws Row */
+/* Throws Row — same size cap as the mode display above */
 .throws-row {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 0.4rem;
+  width: 100%;
+  height: clamp(3.5rem, 3rem + 2.5vw, 7rem); /* = .player-score-large's size */
 }
 
 .throw-slot {
-  width: 4.2rem;
-  height: 3.2rem;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
   background: var(--bg-input);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: clamp(1.4rem, 1.2rem + 4vw, 5rem); /* 40% of the score's clamp */
   font-weight: 700;
   border: 1px solid var(--border);
   transition: all 0.2s ease;
@@ -230,7 +236,7 @@
 
 .throw-empty {
   color: var(--text-muted);
-  font-size: 1.3rem;
+  font-size: clamp(1.3rem, 1.1rem + 0.8vw, 2.2rem);
 }
 
 /* ===========================
@@ -714,12 +720,14 @@
     font-size: clamp(2.25rem, 11vw, 4rem);
   }
 
-  .mode-display {
-    min-height: 1.7rem;
+  /* Boxes follow the mobile score's size (see .player-score-large above) */
+  .mode-display,
+  .throws-row {
+    height: clamp(2.25rem, 11vw, 4rem);
   }
 
   .mode-target {
-    font-size: clamp(1.8rem, 8vw, 2.75rem);
+    font-size: clamp(1.35rem, 6.6vw, 2.4rem);
   }
 
   .throws-row {
@@ -727,9 +735,7 @@
   }
 
   .throw-slot {
-    width: 3rem;
-    height: 2.6rem;
-    font-size: 0.95rem;
+    font-size: clamp(0.9rem, 4.4vw, 1.6rem);
   }
 
   /* Compact input rows so the score panel keeps most of the screen */
