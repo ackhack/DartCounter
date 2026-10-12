@@ -1,3 +1,0 @@
-suggestions and throw zones are not tested in shanghai and cricket.
-
-chekc throw zones when using dart it
