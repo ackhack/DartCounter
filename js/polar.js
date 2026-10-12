@@ -104,11 +104,13 @@ function cpuAimHit(idealToken, difficulty) {
   return { r, angle, field: polarToField(r, angle), ideal: idealToken };
 }
 
-// Per-turn record of where darts actually landed — for any player, not just
-// the CPU (human throws will use it too). One entry per thrown dart, kept as
-// a subsequence of turn.throws: the synthetic 'MISS' fillers pushed after a
-// bust carry no entry, and nothing else does. Entry shape is { r, angle,
-// field } plus `ideal` (the field the CPU aimed at) on CPU darts only.
+// Per-turn record of where darts actually landed — CPU darts and DartIt
+// bridge darts; manual input has no recorded landing and carries no entry.
+// Kept as a subsequence of turn.throws: the synthetic 'MISS' fillers pushed
+// after a bust carry no entry, and nothing else does. Entry shape is
+// { r, angle, field } plus `ideal` (the field it aimed at: the CPU's
+// planned field, else the throw-time X01 suggestion stamped on by
+// applyThrowToken).
 // Undo pops entries in `revertPlayerStats` (dartIndex < turn.hits.length).
 function recordDartHit(turn, hit) {
   if (!turn.hits) turn.hits = [];
@@ -160,14 +162,14 @@ function fieldColor(token, alpha) {
 
 // Aggregate every dart one player threw, for the end-screen boards.
 // `turns` is the list of turn objects (state.history, optionally plus the
-// in-progress _currentPlayerTurn). Recorded hit coordinates win when present
-// (CPU darts, and player coords once input exists); darts without them fall
-// back to the center of the field they scored, so boards are filled for
-// manual input too. Bust auto-miss fillers ('MISS') were never thrown and
-// are skipped; real misses count in `misses` but get no dot.
-// Each dot carries `ideal` — the field the dart aimed at: the recorded aim
-// on CPU darts, else the field it scored (manual darts are plotted at the
-// field center, and bridge darts have no recorded aim). fieldColor() keys
+// in-progress _currentPlayerTurn). Only darts with a recorded landing
+// (CPU darts, DartIt bridge darts) get a dot — manual input has no recorded
+// landing and gets none (the center of the scored field would be a guess);
+// it still counts in `darts`. Bust auto-miss fillers ('MISS') were never
+// thrown and are skipped; real misses count in `misses` but get no dot.
+// Each dot carries `ideal` — the field the dart aimed at, stamped on the
+// hit entry at throw time (applyThrowToken): the recorded aim on CPU darts,
+// else the X01 checkout suggestion / DEFAULT_PLAYER_AIM. fieldColor() keys
 // off it for the dot/zone colors.
 function collectBoardDarts(turns, playerId) {
   const dots = [];
@@ -184,13 +186,10 @@ function collectBoardDarts(turns, playerId) {
 
       const hit = turn.hits && hitIdx < turn.hits.length ? turn.hits[hitIdx++] : null;
       if (hit) {
-        if (hit.r <= 1) dots.push({ r: hit.r, angle: hit.angle, ideal: hit.ideal || hit.field });
+        if (hit.r <= 1) dots.push({ r: hit.r, angle: hit.angle, ideal: hit.ideal || DEFAULT_PLAYER_AIM });
         else misses++;
       } else if (fieldLabel === 'Miss') {
         misses++;
-      } else {
-        const aim = fieldToPolar(fieldLabel);
-        dots.push({ r: aim.r, angle: aim.angle, ideal: fieldLabel });
       }
     }
   }

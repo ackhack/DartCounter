@@ -94,15 +94,43 @@ function updateUndoButton() {
   $('#next-btn').disabled = !state.gameStarted || state.gameOver;
 }
 
+// Default ideal for a dart with no recorded aim and no X01 checkout
+// suggestion: the standard primary target.
+const DEFAULT_PLAYER_AIM = 'T20';
+
+// The field a player was aiming at with `score` left and `dartsLeft` darts
+// remaining in the turn: the first dart of the X01 checkout suggestion
+// (CPU_CHECKOUT_CHART — the same hint the active player card shows, gated
+// the same way: only when the whole checkout fits in the remaining darts),
+// else DEFAULT_PLAYER_AIM (js/polar.js). Non-X01 modes have no suggestion.
+// applyThrowToken (js/input.js) stamps this on bridge darts at throw time;
+// CPU darts carry their own planned field as the aim instead.
+function playerAimDart(score, dartsLeft) {
+  if (isX01()) {
+    const checkout = CPU_CHECKOUT_CHART[score];
+    if (checkout && checkout.length <= dartsLeft) return checkout[0];
+  }
+  return DEFAULT_PLAYER_AIM;
+}
+
 // Turn a single token ("T20", "D20", "20", "Bull", "BE", "0") into the
 // input state submitScore() expects for one dart. The optional hit
 // ({ r, angle, field, ideal? }) is where the dart actually landed (CPU aim
-// or DartIt camera) — submitScore() records it on the turn.
+// or DartIt camera) — submitScore() records it on the turn. A hit without
+// a recorded aim (bridge darts) gets the throw-time ideal stamped on
+// (playerAimDart, live score) so the end boards can show what it aimed at.
+// Manual input passes no hit — no recorded landing, no ideal.
 function applyThrowToken(token, hit) {
   input.number = null;
   input.multiplier = 1;
   input.special = null;
-  input.hit = hit || null;
+
+  if (hit) {
+    const player = state.players[state.currentPlayerIndex];
+    input.hit = hit.ideal ? hit : { ...hit, ideal: playerAimDart(player ? player.score : 0, SCORES_PER_TURN - state.throwCount) };
+  } else {
+    input.hit = null;
+  }
 
   const t = token.trim().toUpperCase();
   if (t === 'BULL') {

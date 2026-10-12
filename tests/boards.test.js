@@ -4,11 +4,15 @@
 // Run: node tests/boards.test.js
 //
 // Plain Node, no test runner — mirrors the project's build-free setup.
-// Loads js/polar.js (which has no DOM dependencies) and asserts the
-// dot-position math, the per-player dart aggregation (recorded hit
-// coordinates win; manual input falls back to field aim points; bust
-// auto-miss fillers are never counted), the per-ideal color scheme, and the
-// zone-disk math (one disk per ideal throw, reaching its farthest dart).
+// Loads js/polar.js (which has no DOM dependencies) plus js/constants.js and
+// js/cpu.js (the checkout chart behind the X01 aim suggestion) and asserts
+// the dot-position math, the per-player dart aggregation (only darts with a
+// recorded landing get dots — CPU and DartIt bridge darts; manual input has
+// no recorded landing and gets none; bust auto-miss fillers are never
+// counted), the dot ideal (stamped on the hit entry at throw time: recorded
+// aim for CPU darts, else the throw-time X01 checkout suggestion / default
+// T20), the playerAimDart suggestion itself, and the zone-disk math (one
+// disk per ideal throw, reaching its farthest dart).
 // Exits non-zero on any failure.
 'use strict';
 
@@ -16,10 +20,16 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-vm.runInThisContext(
-  fs.readFileSync(path.join(__dirname, '..', 'js', 'polar.js'), 'utf8'),
-  { filename: 'polar.js' }
-);
+['constants.js', 'cpu.js', 'polar.js'].forEach((f) => {
+  vm.runInThisContext(
+    fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'),
+    { filename: f }
+  );
+});
+
+// collectBoardDarts asks isX01() for the checkout-suggestion ideal; the
+// real app's state (js/state.js) has DOM dependencies, so stub just the mode.
+globalThis.state = { mode: 'x01' };
 
 let failures = 0;
 function check(name, cond, extra) {
@@ -66,16 +76,18 @@ const cpuBustTurn = {
     { r: 0.9, angle: 0.2, field: 'D20', ideal: 'D20' }
   ]
 };
+// Bridge-style turn: the throw-time ideal was stamped on the entries by
+// applyThrowToken (163 has no checkout-chart row, so the default aim).
 const cpuMissTurn = {
   playerId: 0,
   throws: ['20', 'Miss', 'T19'],
   hits: [
-    { r: 0.7, angle: 0.5, field: '20' },
-    { r: 1.3, angle: 1.1, field: '0' },
-    { r: 0.6, angle: 0.3, field: 'T19' }
+    { r: 0.7, angle: 0.5, field: '20', ideal: 'T20' },
+    { r: 1.3, angle: 1.1, field: '0', ideal: 'T20' },
+    { r: 0.6, angle: 0.3, field: 'T19', ideal: 'T20' }
   ]
 };
-// Human turn: no hits recorded at all — fall back to field aim points.
+// Human turn: manual input records no landing at all — no hit entries.
 const humanTurn = {
   playerId: 1,
   throws: ['20', 'Miss', 'T20']
@@ -95,15 +107,11 @@ check('CPU: the thrown miss consumes its entry and adds no dot',
 check('CPU: third turn keeps using recorded coordinates',
   Math.abs(p0.dots[3].r - 0.6) < 1e-12 && Math.abs(p0.dots[3].angle - 0.3) < 1e-12);
 
+// Manual input has no recorded landing — the darts count, but the board
+// gets no dots for them (the field center would be a guess).
 const p1 = collectBoardDarts(allTurns, 1);
-check('human: 3 darts, 2 dots, 1 miss', p1.darts === 3 && p1.dots.length === 2 && p1.misses === 1,
-  JSON.stringify(p1));
-const aim20 = fieldToPolar('20');
-const aimT20 = fieldToPolar('T20');
-check('human: single 20 falls back to the field aim point',
-  Math.abs(p1.dots[0].r - aim20.r) < 1e-12 && p1.dots[0].angle === aim20.angle);
-check('human: T20 falls back to the field aim point',
-  Math.abs(p1.dots[1].r - aimT20.r) < 1e-12 && p1.dots[1].angle === aimT20.angle);
+check('human: 3 darts, 0 dots, 1 miss (no recorded landing -> no dots)',
+  p1.darts === 3 && p1.dots.length === 0 && p1.misses === 1, JSON.stringify(p1));
 
 check('other players are not mixed in', collectBoardDarts(allTurns, 2).darts === 0);
 check('missing turns entries are tolerated',
@@ -111,25 +119,39 @@ check('missing turns entries are tolerated',
 
 // --- ideal tracking (the key for dot/zone colors) ---
 check('CPU: dot ideal is the recorded aim', p0.dots[0].ideal === 'T20');
-check('bridge-style: recorded hit without an aim falls back to the scored field',
-  p0.dots[2].ideal === '20');
-check('human: manual darts are ideal to the field they scored',
-  p1.dots[0].ideal === '20' && p1.dots[1].ideal === 'T20');
+check('bridge-style: the throw-time ideal stamped on the entry is the dot ideal',
+  p0.dots[2].ideal === 'T20');
+check('legacy: a recorded entry without an ideal falls back to the T20 default', (() => {
+  const t = { playerId: 0, throws: ['20'], hits: [{ r: 0.7, angle: 0.5, field: '20' }] };
+  const d = collectBoardDarts([t], 0).dots;
+  return d.length === 1 && d[0].ideal === 'T20';
+})());
 check('CPU: dot ideal is the recorded aim even when the dart lands elsewhere', (() => {
   const t = { playerId: 0, throws: ['T20'], hits: [{ r: 0.97, angle: 0.05, field: 'D20', ideal: 'T20' }] };
   const d = collectBoardDarts([t], 0).dots;
   return d.length === 1 && d[0].ideal === 'T20' && Math.abs(d[0].r - 0.97) < 1e-12;
 })());
 
-// Bull / bulls-eye labels fall back to their aim points too.
+// Manual Bull / bulls-eye darts count but plot nothing either.
 const bullTurn = { playerId: 1, throws: ['Bull', 'BE'] };
 const pBull = collectBoardDarts([bullTurn], 1);
-check('human: Bull and BE fall back to their aim points',
-  pBull.dots.length === 2 &&
-  Math.abs(pBull.dots[0].r - fieldToPolar('Bull').r) < 1e-12 &&
-  pBull.dots[1].r === 0);
-check('human: Bull and BE are ideal to their own fields',
-  pBull.dots[0].ideal === 'Bull' && pBull.dots[1].ideal === 'BE');
+check('human: manual Bull/BE darts count but get no dots',
+  pBull.darts === 2 && pBull.dots.length === 0);
+
+// --- playerAimDart (the throw-time ideal applyThrowToken stamps on bridge darts) ---
+check('playerAimDart: on 9 the suggested dart is 9', playerAimDart(9, 1) === '9');
+check('playerAimDart: 100 -> first of "T20 D20" is T20', playerAimDart(100, 3) === 'T20');
+check('playerAimDart: 40 -> D20', playerAimDart(40, 2) === 'D20');
+check('playerAimDart: hidden when the checkout cannot fit (37 needs two, one left -> T20)',
+  playerAimDart(37, 1) === 'T20');
+check('playerAimDart: no chart row -> default T20 (163)', playerAimDart(163, 3) === 'T20');
+check('playerAimDart: non-x01 modes have no suggestion', (() => {
+  const saved = state.mode;
+  state.mode = 'cricket';
+  const d = playerAimDart(9, 1);
+  state.mode = saved;
+  return d === 'T20';
+})());
 
 // --- fieldColor ---
 check('fieldColor: pinned format (single 20 is the hue-0 mid step)',
@@ -153,6 +175,7 @@ check('fieldColor: alpha variant is hsla with that alpha', (() => {
 // --- boardZones ---
 check('boardZones: no dots -> no zones', boardZones([]).length === 0);
 
+const aimT20 = fieldToPolar('T20');
 const t20Group = [
   { r: aimT20.r, angle: aimT20.angle, ideal: 'T20' }, // on the aim point
   { r: 0.55, angle: 0.12, ideal: 'T20' },             // short of the aim

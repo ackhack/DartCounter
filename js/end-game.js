@@ -130,13 +130,13 @@ function renderResultsModal(results) {
 }
 
 // Render one dartboard per player (winner first) into #player-boards. Every
-// thrown dart gets a dot colored by the ideal throw it aimed at (recorded
-// aim for CPU darts, else the scored field — see collectBoardDarts), and
-// every ideal field gets a translucent zone disk in the same color, centered
-// on the aim point and reaching the farthest dart that aimed at it (see
-// boardZones). Dots: recorded hit coordinates where available, else the
-// center of the scored field. Misses are counted under the board, not
-// plotted.
+// dart with a recorded landing (CPU darts, DartIt bridge darts) gets a dot
+// colored by the ideal throw it aimed at (recorded aim for CPU darts, else
+// the throw-time checkout suggestion — see collectBoardDarts), and every
+// ideal field gets a translucent zone disk in the same color, centered on
+// the aim point and reaching the farthest dart that aimed at it (see
+// boardZones). Manual input has no recorded landing and gets no dot (only
+// the dart/miss count under the board). Misses are not plotted either.
 function renderEndBoards(results) {
   const container = $('#player-boards');
   container.innerHTML = '';
