@@ -10,8 +10,9 @@ function renderStatsScreen() {
   const container = $('#stats-list');
   container.innerHTML = '';
 
-  const entries = Object.entries(stats.players)
-    .filter(([, e]) => e.modes)
+  // Per-player stats are derived from the full game records at render
+  // time (js/storage.js) — nothing per-player is persisted.
+  const entries = Object.entries(derivePlayerStats(stats.games || []))
     .map(([key, e]) => ({ key, ...e }))
     .sort((a, b) => totalGames(b) - totalGames(a) || a.name.localeCompare(b.name));
 
@@ -25,13 +26,6 @@ function renderStatsScreen() {
   container.appendChild(buildGamesEntry());
 }
 
-function resetPlayerStats(key, name) {
-  if (!confirm(`Reset all stats for ${name}? This cannot be undone.`)) return;
-  delete stats.players[key];
-  saveStats();
-  renderStatsScreen();
-}
-
 function buildPlayerEntry(entry) {
   const el = document.createElement('div');
   el.className = 'stats-entry';
@@ -43,16 +37,8 @@ function buildPlayerEntry(entry) {
     <span class="stats-chevron" aria-hidden="true">▶</span>
     <span class="stats-entry-name"${color ? ` style="color:${color}"` : ''}>${entry.name}</span>
     <span class="stats-entry-summary">${totalGames(entry)} ${totalGames(entry) === 1 ? 'game' : 'games'}</span>
-    <button class="remove-player-btn stats-reset-btn">✕</button>
   `;
-  const resetBtn = header.querySelector('.stats-reset-btn');
-  resetBtn.title = `Reset all stats for ${entry.name}`;
-  resetBtn.setAttribute('aria-label', `Reset all stats for ${entry.name}`);
   header.addEventListener('click', () => el.classList.toggle('open'));
-  resetBtn.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    resetPlayerStats(entry.key, entry.name);
-  });
 
   const body = document.createElement('div');
   body.className = 'stats-entry-body';
@@ -76,21 +62,29 @@ function renderModeSection(entry, mode) {
   if (!m || m.gamesPlayed === 0) return null;
   const isX01 = mode === 'x01';
   const modeTitles = { x01: 'X01', cricket: 'Cricket', shanghai: 'Shanghai' };
+  // Shared first six cards, then mode-specific skill markers: X01 gets
+  // 180s + T20s; cricket/shanghai get best leg (highest single-game
+  // score) + avg counting hits (darts on the scoring target, T = 3 /
+  // D = 2 / S = 1, BE = 2 — see countingHitsInTurn).
   const cards = [
     { value: m.gamesPlayed, label: 'Games' },
     { value: m.wins, label: 'Wins' },
     { value: `${m.winRate}%`, label: 'Win Rate' },
     { value: m.avgPerTurn, label: 'Avg / Turn' },
     { value: m.avgPerGame, label: 'Avg / Game' },
-    isX01
-      ? { value: m.bestTurn, label: 'Best Turn' }
-      : { value: m.bestTurn, label: mode === 'cricket' ? 'Best Leg' : 'Best Turn' },
-    isX01
-      ? { value: m.bestScore, label: 'Best Finish' }
-      : { value: m.bullDarts, label: 'Bull Darts' },
-    isX01
-      ? { value: m.checkoutAttempts > 0 ? `${m.checkoutPct}%` : '—', label: 'Checkout %' }
-      : { value: m.maxDarts, label: 'Max Darts' }
+    { value: m.bestTurn, label: 'Best Turn' },
+    ...(isX01 ? [
+      { value: m.bestScore, label: 'Best Finish' },
+      { value: m.checkoutAttempts > 0 ? `${m.checkoutPct}%` : '—', label: 'Checkout %' },
+      { value: m.eighteens, label: '180s' },
+      { value: m.t20s, label: 'T20s' }
+    ] : [
+      mode === 'cricket'
+        ? { value: m.bullDarts, label: 'Bull Darts' }
+        : { value: m.instantWins, label: 'Instant Wins' },
+      { value: m.bestGame, label: 'Best Leg' },
+      { value: m.avgCountingHits, label: 'Avg Counting Hits' }
+    ])
   ];
 
   const section = document.createElement('div');

@@ -47,11 +47,6 @@ const MAX_X01_TURN = 180;
 // Seconds to show the game-over results before the next game auto-starts.
 const AUTO_RESTART_DELAY = 10;
 
-// Cap on the recorded landings persisted per player per mode (most recent
-// games win) — bounds both the localStorage payload and the end-screen
-// style board rendered in the stats screen.
-const MAX_PERSISTED_HITS = 1000;
-
 // Pause before the CPU throws each dart, so its turn is watchable.
 const CPU_THINK_DELAY = 1000;
 

@@ -17,17 +17,16 @@ function endGame() {
   // Mark winner
   results[0].isWinner = true;
 
-  // Update stats — skip anonymous "Player N" names and the computer so
-  // placeholder games and CPU play don't create per-player stat entries.
+  // Position bookkeeping for the replay shuffle (js/game-flow.js).
+  // Per-player stats are no longer written at game end — the full game
+  // record saved below is the source, derived at render time.
   results.forEach((p, i) => {
     p.lastGamePosition = i;
     p.currentGamePosition = 0;
-    if (!isDefaultPlayerName(p.name) && !p.isCpu) {
-      updatePlayerStats(p, i === 0);
-    }
   });
 
-  // Save to history — skip entirely when no human used a real name.
+  // Save the full game record — skip entirely when no human used a real
+  // name, so placeholder games and CPU-only games stay out of history.
   if (results.some(p => !isDefaultPlayerName(p.name) && !p.isCpu)) {
     saveGameToHistory({
       winner: results[0].name,

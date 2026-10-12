@@ -3,59 +3,38 @@
 // ===========================
 'use strict';
 
+// dartcounter_stats holds only full game records. Per-player stats are
+// not persisted at all — derivePlayerStats() computes them from the game
+// history at render time (js/stats-screen.js). Names and colors live in
+// their own keys (dartcounter_player_names / dartcounter_player_colors).
+//
+// Saved game shape:
+//   { date, mode, x01Start, winner,
+//     results: [{ position, name, score, runs, turns, finished }],  // recent-games rows
+//     players: [{ name, isCpu, finished, runs, turns, score, marks? }],
+//     turns:   [{ playerId, throws, total?, start, sh?,
+//                 hits: [{ r, angle, ideal }] }] }
+// players[i] is the final snapshot of that player and its index is
+// turn.playerId. Turns are lean: the throw labels already encode
+// value/multiplier, so values/_scoring/round are not saved; `total` is
+// omitted while a turn is still in progress (manual mid-turn end), `sh`
+// (Shanghai target index) is omitted in non-Shanghai games, and `hits`
+// holds only recorded landings (CPU darts, DartIt bridge darts).
+// Pre-full-record games (no turns array) are kept — they still show in
+// the recent-games list, but the derivation skips them.
+
 function loadStats() {
   try {
     const data = localStorage.getItem(STORAGE_KEY_STATS);
-    const parsed = data ? JSON.parse(data) : { players: {}, games: [] };
-    if (parsed.players) {
-      for (const key of Object.keys(parsed.players)) {
-        const entry = parsed.players[key];
-        // Migrate legacy flat entries to the per-mode structure.
-        // The mode of old games is unrecoverable, so attribute them to X01.
-        // Legacy totalTurns accumulated per-dart counts (player.turns increments per dart).
-        // Legacy bestTurn stored the max of per-game total runs (a bug, never a
-        // single-turn score); the per-turn data is gone, so drop it.
-        if (entry && !entry.modes) {
-          entry.modes = {
-            x01: {
-              ...emptyModeStats(),
-              gamesPlayed: entry.gamesPlayed || 0,
-              wins: entry.wins || 0,
-              totalRuns: entry.totalRuns || 0,
-              totalDarts: entry.totalTurns || 0,
-              bestScore: entry.bestScore || 0
-            },
-            cricket: emptyModeStats(),
-            shanghai: emptyModeStats()
-          };
-          delete entry.gamesPlayed;
-          delete entry.wins;
-          delete entry.totalRuns;
-          delete entry.totalTurns;
-          delete entry.bestTurn;
-          delete entry.bestScore;
-          computeModeAverages(entry.modes.x01);
-        }
-      }
-      // One-time repair for stats written before the per-turn bestTurn fix:
-      // bestTurn then stored the player's total runs per game, so any X01
-      // value above the max single-turn score is definitely corrupt. Reset
-      // it so the stat rebuilds from new games instead of staying pinned.
-      // Entries written before the hit stats existed get empty defaults.
-      for (const entry of Object.values(parsed.players)) {
-        if (!entry || !entry.modes) continue;
-        const x01 = entry.modes.x01;
-        if (x01 && x01.bestTurn > MAX_X01_TURN) x01.bestTurn = 0;
-        for (const m of Object.values(entry.modes)) {
-          if (!m) continue;
-          if (!Array.isArray(m.hits)) m.hits = [];
-          if (typeof m.totalMisses !== 'number') m.totalMisses = 0;
-        }
-      }
-    }
+    const parsed = data ? JSON.parse(data) : { games: [] };
+    if (!Array.isArray(parsed.games)) parsed.games = [];
+    // Blobs from the per-player-aggregate era carry a `players` map.
+    // Those aggregates can't be rebuilt into full games, so drop them on
+    // load (the old summary games are kept).
+    delete parsed.players;
     return parsed;
   } catch {
-    return { players: {}, games: [] };
+    return { games: [] };
   }
 }
 
@@ -102,135 +81,234 @@ function saveStats() {
   }
 }
 
-function emptyModeStats() {
+function computeModeAverages(m) {
+  m.avgPerTurn = m.totalTurns > 0 ? Math.round(m.totalRuns / m.totalTurns * 10) / 10 : 0;
+  m.avgPerGame = m.gamesPlayed > 0 ? Math.round(m.totalRuns / m.gamesPlayed * 10) / 10 : 0;
+  m.winRate = m.gamesPlayed > 0 ? Math.round(m.wins / m.gamesPlayed * 100) : 0;
+  m.checkoutPct = m.checkoutAttempts > 0 ? Math.round(m.checkouts / m.checkoutAttempts * 100) : 0;
+  m.avgCountingHits = m.totalTurns > 0 ? Math.round(m.countingHits / m.totalTurns * 10) / 10 : 0;
+}
+
+// Fresh per-mode bucket for derivePlayerStats — the exact field set the
+// stats screen renders (js/stats-screen.js).
+function emptyModeBucket() {
   return {
     gamesPlayed: 0,
     wins: 0,
     totalRuns: 0,
     totalTurns: 0,
     totalDarts: 0,
-    totalMisses: 0, // thrown darts that missed the board (per-game end-screen counting)
+    totalMisses: 0,
     maxDarts: 0,
     bestTurn: 0,
     bestScore: 0,  // X01: lowest remaining score
     checkoutAttempts: 0,
     checkouts: 0,
     bullDarts: 0,
+    bestGame: 0,     // cricket/shanghai: highest single-game score (runs)
+    instantWins: 0,  // shanghai: games won with the S+D+T combo
+    eighteens: 0,    // x01: turns totalling 180
+    t20s: 0,         // x01: triple-20 darts
+    countingHits: 0, // cricket/shanghai: darts on the scoring target, weighted by multiplier
     avgPerTurn: 0,
     avgPerGame: 0,
     winRate: 0,
     checkoutPct: 0,
-    // Every recorded landing of this player in this mode, { r, angle,
-    // ideal } — CPU darts and DartIt bridge darts (manual input records
-    // none). Misses (r > 1) are kept; capped at MAX_PERSISTED_HITS (most
-    // recent games win). Rendered in the end-screen board style on the
-    // stats screen (createBoardFace).
+    avgCountingHits: 0,
     hits: []
   };
 }
 
-function computeModeAverages(m) {
-  m.avgPerTurn = m.totalTurns > 0 ? Math.round(m.totalRuns / m.totalTurns * 10) / 10 : 0;
-  m.avgPerGame = m.gamesPlayed > 0 ? Math.round(m.totalRuns / m.gamesPlayed * 10) / 10 : 0;
-  m.winRate = m.gamesPlayed > 0 ? Math.round(m.wins / m.gamesPlayed * 100) : 0;
-  m.checkoutPct = m.checkoutAttempts > 0 ? Math.round(m.checkouts / m.checkoutAttempts * 100) : 0;
-}
-
-// Derived from history so undo can't skew the counts.
-// A turn started from score <= MAX_X01_TURN (3 darts can always finish it)
-// was a checkout opportunity; the finishing turn is the player's last
-// history entry.
-function computeX01CheckoutStats(player) {
-  const entries = state.history.filter(h => h.playerId === player.id);
+// X01 checkout attempts/made for one saved game — the same walk as the
+// old per-game computeX01CheckoutStats: a turn started from
+// score <= MAX_X01_TURN was a checkout opportunity; the finishing turn
+// is the player's last one.
+function x01CheckoutStats(entries, finalScore, finished) {
   if (entries.length === 0) return { attempts: 0, made: 0 };
-  let afterScore = player.score;
+  let afterScore = finalScore;
   let attempts = 0;
   let made = 0;
   for (let i = entries.length - 1; i >= 0; i--) {
+    if (typeof entries[i].total !== 'number') continue; // in-progress turn
     const startScore = afterScore + entries[i].total;
     if (startScore <= MAX_X01_TURN) {
       attempts++;
-      if (i === entries.length - 1 && player.finished) made++;
+      if (i === entries.length - 1 && finished) made++;
     }
     afterScore = startScore;
   }
   return { attempts, made };
 }
 
-function countBullDarts(player) {
-  let count = 0;
-  for (const h of state.history) {
-    if (h.playerId !== player.id) continue;
-    for (const t of h.throws) {
-      if (t === 'Bull' || t === 'BE' || t === 'BullsEye') count++;
+// "Counting hits" for one turn (cricket/shanghai): every dart on the
+// scoring target, weighted by multiplier (T = 3, D = 2, single = 1;
+// Bull = 1, BE = 2 — the engine scores a bulls-eye as 25 × 2 in both
+// modes, so it banks double in the bull round). Cricket targets:
+// 15–20 + bull. Shanghai: the turn's current target only.
+function countingHitsInTurn(turn, mode) {
+  let hits = 0;
+  const target = mode === 'shanghai' ? SHANGHAI_TARGETS[turn.sh] : null;
+  for (const label of turn.throws) {
+    const t = String(label).replace(' (BUST)', '');
+    let weight = 0;
+    let number = null;
+    if (t === 'Bull') {
+      weight = 1;
+    } else if (t === 'BE') {
+      weight = 2;
+    } else {
+      const m = t.match(/^([TD]?)(\d+)$/);
+      if (m) {
+        number = parseInt(m[2], 10);
+        weight = m[1] === 'T' ? 3 : m[1] === 'D' ? 2 : 1;
+      }
     }
+    if (weight === 0) continue;
+    const onTarget = mode === 'cricket'
+      ? (number !== null && CRICKET_NUMBERS.includes(number)) || t === 'Bull' || t === 'BE'
+      : (number !== null && number === target) || (target === BULL_NUMBER && (t === 'Bull' || t === 'BE'));
+    if (onTarget) hits += weight;
   }
-  return count;
+  return hits;
 }
 
-function updatePlayerStats(player, isWinner) {
-  const key = player.name.toLowerCase();
-  if (!stats.players[key]) {
-    stats.players[key] = { name: player.name, modes: { x01: emptyModeStats(), cricket: emptyModeStats(), shanghai: emptyModeStats() } };
-  }
-  // Lazily backfill modes added after the player's stats were first created.
-  const modes = stats.players[key].modes;
-  if (!modes.shanghai) modes.shanghai = emptyModeStats();
-  const m = modes[state.mode];
-  const entries = state.history.filter(h => h.playerId === player.id);
+// Everything the stats screen shows per player, derived from the full
+// game records — nothing per-player is persisted. Returns
+// { [name.toLowerCase()]: { name, modes: { x01, cricket, shanghai } } }.
+// CPU players and anonymous "Player N" names get no entry (their turns
+// are still in the records — the record is the full game).
+// Pre-full-record summary games (no turns array) are skipped.
+function derivePlayerStats(games) {
+  const byKey = {};
 
+  for (const g of games || []) {
+    if (!g || !Array.isArray(g.players) || !Array.isArray(g.turns)) continue;
+
+    for (let idx = 0; idx < g.players.length; idx++) {
+      const p = g.players[idx];
+      if (!p || p.isCpu || isDefaultPlayerName(p.name)) continue;
+      const key = p.name.toLowerCase();
+      if (!byKey[key]) {
+        byKey[key] = {
+          name: p.name,
+          modes: {
+            x01: emptyModeBucket(),
+            cricket: emptyModeBucket(),
+            shanghai: emptyModeBucket()
+          }
+        };
+      }
+      const m = byKey[key].modes[g.mode];
+      if (!m) continue; // unknown mode in an old record — skip, don't crash
+      accumulateGameStats(m, g, idx, p);
+    }
+  }
+  return byKey;
+}
+
+function accumulateGameStats(m, game, playerIdx, player) {
   m.gamesPlayed++;
-  if (isWinner) m.wins++;
-  m.totalRuns += player.runs;
-  m.totalTurns += entries.length;
-  m.totalDarts += player.turns;
+  if (game.winner === player.name) m.wins++;
+  m.totalRuns += player.runs || 0;
+  m.totalDarts += player.turns || 0;
   if (player.turns > m.maxDarts) m.maxDarts = player.turns;
-  // Best single turn this game (busted X01 turns total 0 by history accounting)
-  const playerBestTurn = entries.reduce((max, h) => Math.max(max, h.total || 0), 0);
-  if (playerBestTurn > m.bestTurn) m.bestTurn = playerBestTurn;
-  if (isX01() && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
+  if (game.mode === 'x01' && player.score >= 0 && (m.bestScore === 0 || player.score < m.bestScore)) {
     m.bestScore = player.score;
   }
-  m.bullDarts += countBullDarts(player);
-  if (isX01()) {
-    const co = computeX01CheckoutStats(player);
+  // Best Leg = highest single-game score. In Shanghai `finished` is only
+  // ever set by the S+D+T instant win, so finished && winner is the
+  // instant-win count.
+  if (game.mode === 'cricket' || game.mode === 'shanghai') {
+    if ((player.runs || 0) > m.bestGame) m.bestGame = player.runs;
+  }
+  if (game.mode === 'shanghai' && player.finished && game.winner === player.name) {
+    m.instantWins++;
+  }
+
+  const entries = game.turns.filter(t => t && t.playerId === playerIdx);
+  for (const t of entries) {
+    // A turn without a total is the in-progress one (manual mid-turn
+    // end): its darts still count in the hits board, but not in the
+    // per-turn stats.
+    if (typeof t.total !== 'number') continue;
+    m.totalTurns++;
+    if (t.total > m.bestTurn) m.bestTurn = t.total;
+    for (const label of t.throws) {
+      if (label === 'Bull' || label === 'BE' || label === 'BullsEye') m.bullDarts++;
+    }
+    if (game.mode === 'x01') {
+      if (t.total === MAX_X01_TURN) m.eighteens++;
+      for (const label of t.throws) {
+        if (String(label).replace(' (BUST)', '') === 'T20') m.t20s++;
+      }
+    } else {
+      m.countingHits += countingHitsInTurn(t, game.mode);
+    }
+  }
+  if (game.mode === 'x01') {
+    const co = x01CheckoutStats(entries, player.score, player.finished);
     m.checkoutAttempts += co.attempts;
     m.checkouts += co.made;
   }
 
-  // Persist this game's recorded landings (CPU darts, DartIt bridge darts)
-  // to the per-mode hit list — the stats screen renders it in the
-  // end-screen board style. Recomputed from the live history, so undo
-  // can't skew it. A manual End can fire mid-turn, so include the
-  // in-progress turn too — the end-screen boards show it as well (for
-  // players who don't own it, collectPlayerHits finds nothing).
+  // Recorded landings — saved turns match collectPlayerHits' expected
+  // shape ({ playerId, throws, hits: [{ r, angle, ideal }] }), so the
+  // end-screen collector is reused as-is (misses r > 1 kept, 'MISS'
+  // fillers excluded, manual 'Miss' counted).
+  const board = collectPlayerHits(game.turns, playerIdx);
+  if (board.hits.length > 0) m.hits.push(...board.hits);
+  m.totalMisses += board.misses;
+
+  computeModeAverages(m);
+}
+
+// Persist the full game record — the source everything per-player is
+// derived from. Written once at game end (so undo can't skew it); no cap.
+function saveGameToHistory(result) {
+  // A manual End can fire mid-turn — include the in-progress turn too
+  // (same pattern as renderEndBoards), so its darts/hits are in the
+  // record.
   const turns = state._currentPlayerTurn
     ? state.history.concat([state._currentPlayerTurn])
     : state.history;
-  const board = collectPlayerHits(turns, player.id);
-  if (board.hits.length > 0) {
-    if (!Array.isArray(m.hits)) m.hits = [];
-    m.hits.push(...board.hits);
-    if (m.hits.length > MAX_PERSISTED_HITS) m.hits = m.hits.slice(-MAX_PERSISTED_HITS);
-  }
-  m.totalMisses = (m.totalMisses || 0) + board.misses;
 
-  computeModeAverages(m);
-  saveStats();
-}
-
-function saveGameToHistory(result) {
   stats.games.push({
     date: Date.now(),
     mode: state.mode,
     x01Start: isX01() ? state.x01Start : null,
-    players: state.players.map(p => ({ name: p.name, finished: p.finished, runs: p.runs })),
     winner: result.winner,
-    results: result.results
+    results: result.results,
+    players: state.players.map(p => {
+      const snap = {
+        name: p.name,
+        isCpu: !!p.isCpu,
+        finished: !!p.finished,
+        runs: p.runs || 0,
+        turns: p.turns || 0,
+        score: typeof p.score === 'number' ? p.score : 0
+      };
+      // Cricket: the final marks are what numbers-closed stats derive
+      // from later.
+      if (isCricket() && p.marks && Object.keys(p.marks).length > 0) {
+        snap.marks = p.marks;
+      }
+      return snap;
+    }),
+    turns: turns.map(t => {
+      const lean = {
+        playerId: t.playerId,
+        throws: t.throws,
+        start: t.startingScore
+      };
+      if (typeof t.total === 'number') lean.total = t.total;
+      // Turn objects always carry shanghaiIndex (0 in other modes) — only
+      // Shanghai games store it.
+      if (isShanghai()) lean.sh = t.shanghaiIndex;
+      if (t.hits && t.hits.length > 0) {
+        lean.hits = t.hits.map(h => ({ r: h.r, angle: h.angle, ideal: h.ideal || DEFAULT_PLAYER_AIM }));
+      }
+      return lean;
+    })
   });
-  // Keep last 50 games
-  if (stats.games.length > 50) {
-    stats.games = stats.games.slice(-50);
-  }
   saveStats();
 }
