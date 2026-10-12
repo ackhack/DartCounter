@@ -217,7 +217,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.4rem, 1.2rem + 4vw, 5rem); /* 40% of the score's clamp */
+  font-size: 4vw;
   font-weight: 700;
   border: 1px solid var(--border);
   transition: all 0.2s ease;
@@ -236,7 +236,7 @@
 
 .throw-empty {
   color: var(--text-muted);
-  font-size: clamp(1.3rem, 1.1rem + 0.8vw, 2.2rem);
+  font-size: 0.7em; /* relative to the slot's container-scaled font */
 }
 
 /* ===========================
@@ -732,10 +732,6 @@
 
   .throws-row {
     gap: 0.25rem;
-  }
-
-  .throw-slot {
-    font-size: clamp(0.9rem, 4.4vw, 1.6rem);
   }
 
   /* Compact input rows so the score panel keeps most of the screen */
