@@ -1,5 +1,0 @@
-the zones that are generated for where the player tried to throw are wrong.
-
-the suggestions for x01 do not account the amount of throws left sometimes.
-
-suggestions and throw zones are not tested in shanghai and cricket.
