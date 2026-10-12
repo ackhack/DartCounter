@@ -35,8 +35,13 @@ function submitScore(forcedMult) {
     }
   } else {
     // No valid input — bail
+    input.hit = null;
     return;
   }
+
+  // Where this dart actually landed (CPU aim / DartIt camera), if the
+  // caller attached it — recorded on the turn below once scored.
+  const dartHit = input.hit;
 
   // Clear input for next throw
   clearInput();
@@ -86,6 +91,13 @@ function submitScore(forcedMult) {
   // Append-only throw tape. Only real inputted darts land here (the auto-miss
   // fillers pushed below on a bust bypass this), and undo never removes them.
   state.throwLog.push({ label: throwLabel, color: player.color });
+
+  // Record where this dart actually landed, if the caller attached hit
+  // coordinates. Only really scored darts get one — bailed submits return
+  // earlier, and the bust auto-miss fillers below never carry a hit.
+  if (dartHit) {
+    recordDartHit(state._currentPlayerTurn, dartHit);
+  }
 
   // X01 bust ends the turn — remaining darts count as misses.
   // Auto-misses count as darts (player.turns) so undoing them stays balanced.

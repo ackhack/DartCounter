@@ -260,14 +260,10 @@ function cpuThrowDart() {
   const token = hit.field;
 
   const preScore = player.score;
-  applyThrowToken(token);
+  // The hit (incl. ideal) rides on the throw — submitScore records it on
+  // the turn, so the end-of-game boards can plot where it landed.
+  applyThrowToken(token, hit);
   submitScore();
-
-  // Record where this dart actually landed so the hit coordinates can be
-  // shown per player at the end of the game (aggregated from history). The
-  // turn may have just been pushed to history (3rd dart, bust or checkout).
-  const turn = state._currentPlayerTurn || state.history[state.history.length - 1];
-  recordDartHit(turn, { r: hit.r, angle: hit.angle, field: hit.field, ideal: ideal });
 
   // Advance the plan only when the planned dart landed exactly on target;
   // anything else (miss, error dart, bust) invalidates it and the next dart

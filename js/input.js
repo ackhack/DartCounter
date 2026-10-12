@@ -58,6 +58,7 @@ function clearInput() {
   input.number = null;
   input.multiplier = 1;
   input.special = null;
+  input.hit = null;
 
   $$('.num-btn').forEach(btn => btn.classList.remove('selected'));
   $$('.mult-btn').forEach((btn, i) => {
@@ -94,11 +95,14 @@ function updateUndoButton() {
 }
 
 // Turn a single token ("T20", "D20", "20", "Bull", "BE", "0") into the
-// input state submitScore() expects for one dart.
-function applyThrowToken(token) {
+// input state submitScore() expects for one dart. The optional hit
+// ({ r, angle, field, ideal? }) is where the dart actually landed (CPU aim
+// or DartIt camera) — submitScore() records it on the turn.
+function applyThrowToken(token, hit) {
   input.number = null;
   input.multiplier = 1;
   input.special = null;
+  input.hit = hit || null;
 
   const t = token.trim().toUpperCase();
   if (t === 'BULL') {

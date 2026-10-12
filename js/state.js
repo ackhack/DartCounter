@@ -24,7 +24,8 @@ let input = {
   number: null,
   multiplier: 1,
   special: null,
-  selected: false
+  selected: false,
+  hit: null  // where the dart actually landed ({ r, angle, field, ideal? }), set by CPU/DartIt before submitScore
 };
 
 let stats = loadStats();

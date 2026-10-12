@@ -44,17 +44,11 @@ function applyDartItUpdate() {
   const dat = parseDetect(JSON.parse(newVal));
   console.log('Received from DartIt ' + (dat ? dat.token : null))
   if (dat != null) {
-    const dartsBefore = state.throwLog.length;
-    applyThrowToken(dat.token);
+    // The impact point (if the response carried board coordinates) rides on
+    // the throw — submitScore records it on the turn, so the end-of-game
+    // boards plot it.
+    applyThrowToken(dat.token, dat.hit ? { r: dat.hit.r, angle: dat.hit.angle, field: dat.token } : null);
     submitScore();
-
-    // Record where the dart actually landed (turn.hits, the same path as
-    // the CPU) so the end-of-game boards plot it. Only when this dart was
-    // really scored — submitScore can bail (game over, finished player).
-    if (dat.hit && state.throwLog.length === dartsBefore + 1) {
-      const turn = state._currentPlayerTurn || state.history[state.history.length - 1];
-      recordDartHit(turn, { r: dat.hit.r, angle: dat.hit.angle, field: dat.token });
-    }
   }
 }
 
