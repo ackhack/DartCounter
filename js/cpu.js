@@ -1,5 +1,5 @@
 // ===========================
-// DART COUNTER - Computer Opponent (X01)
+// DART COUNTER - Computer Opponent
 // ===========================
 'use strict';
 
@@ -209,11 +209,93 @@ function cpuDartValue(token) {
 let cpuPlan = null;
 
 function cpuNextPlannedDart(player) {
+  if (isCricket()) return cpuCricketIdeal(player);
+  if (isShanghai()) return cpuShanghaiIdeal();
+
   if (!cpuPlan || cpuPlan[0] !== player.score) {
     const finish = CPU_CHECKOUT_CHART[player.score];
     cpuPlan = finish ? [player.score, finish] : null;
   }
   return cpuPlan ? cpuPlan[1][0] : 'T20';
+}
+
+// --- Aim selection for cricket and Shanghai ---
+//
+// No per-turn plan here: each dart is re-decided from the live marks /
+// target state, so a miss or undo just changes the next dart naturally.
+
+// The field the CPU aims at in cricket: the triple of the suggested number
+// (cricketSuggestedNumber, js/render.js — the same hint the active player
+// card shows). When that is null (player fully closed while leading, or
+// the board fully closed) it banks points on the highest number not closed
+// by every player — its own marks there are already full, so every hit
+// scores. The bull has no triple ring: the bulls-eye is its highest-value
+// field (2 marks / 50 pts) and dominates for both closing and banking.
+function cpuCricketIdeal(player) {
+  let n = cricketSuggestedNumber(player);
+  if (n === null) {
+    n = 20;
+    for (let i = CRICKET_NUMBERS.length - 1; i >= 0; i--) {
+      if (!cricketAllPlayersClosed(CRICKET_NUMBERS[i])) {
+        n = CRICKET_NUMBERS[i];
+        break;
+      }
+    }
+  }
+  return n === BULL_NUMBER ? 'BE' : 'T' + n;
+}
+
+// The multiplier the next dart aims for while an instant win (single +
+// double + triple of the current target in one turn) is still in play:
+//   two distinct multipliers hit -> the missing one completes the combo
+//   (1&2 -> 3, 2&3 -> 1, 1&3 -> 2)
+//   one multiplier hit -> the highest one not hit yet (3, or 2 when the
+//   triple already is — the combo still needs the other two)
+//   else -> null (no win in play: aim triple for the most points)
+// Pure over the hit multipliers, so it tests without state.
+function shanghaiWinAimMult(hits) {
+  if (hits.size === 2) {
+    const [a, b] = [...hits];
+    return 6 - a - b;
+  }
+  if (hits.size === 1) {
+    const m = hits.values().next().value;
+    return m === 3 ? 2 : 3;
+  }
+  return null;
+}
+
+// Throw token for a multiplier of a Shanghai target (bull: 1 -> Bull,
+// 2 -> BE; the win aim never picks a bull multiplier — the bull round
+// is not winnable).
+function shanghaiMultToken(target, mult) {
+  if (target === BULL_NUMBER) return mult === 2 ? 'BE' : 'Bull';
+  if (mult === 3) return 'T' + target;
+  if (mult === 2) return 'D' + target;
+  return String(target);
+}
+
+// The field the CPU aims at in Shanghai: the instant-win multiplier while
+// S+D+T of the current target is still reachable this turn (see
+// shanghaiWinAimMult), else the max-points throw — triple of the target,
+// bulls-eye in the bull round (no triple ring, 50 is the top value).
+function cpuShanghaiIdeal() {
+  const target = currentShanghaiTarget();
+  let mult = null;
+  if (target !== BULL_NUMBER) {
+    // Only darts on the current target count toward the win combo — same
+    // rule as shanghaiWinCombo (js/scoring.js).
+    const hits = new Set();
+    const turn = state._currentPlayerTurn;
+    if (turn) {
+      for (const v of turn.values) {
+        if (v[0] === target) hits.add(v[1]);
+      }
+    }
+    mult = shanghaiWinAimMult(hits);
+  }
+  if (mult !== null) return shanghaiMultToken(target, mult);
+  return target === BULL_NUMBER ? 'BE' : 'T' + target;
 }
 
 // --- Turn driver ---

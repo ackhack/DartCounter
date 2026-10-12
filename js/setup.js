@@ -7,12 +7,6 @@ function setupEventListeners() {
   // Mode selection
   $$('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      // The computer opponent only plays X01 — don't switch away while a
-      // CPU row is active.
-      if (btn.dataset.mode !== 'x01' && $$('.cpu-toggle-btn.active').length > 0) {
-        alert('The computer opponent only plays X01 — turn off the 🤖 toggle first.');
-        return;
-      }
       $$('.mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.mode = btn.dataset.mode;
@@ -20,7 +14,7 @@ function setupEventListeners() {
     });
   });
 
-  // CPU difficulty slider (X01 only, shown while at least one CPU is on)
+  // CPU difficulty slider (shown while at least one CPU is on)
   const cpuSlider = $('#cpu-difficulty');
   cpuSlider.addEventListener('input', () => {
     state.cpuDifficulty = parseInt(cpuSlider.value);
@@ -106,16 +100,11 @@ function updateSetupVisibility() {
   updateCpuUi();
 }
 
-// CPU controls (X01 only): the row toggles are enabled only in X01, and the
+// CPU controls: the row toggles are available in every mode, and the
 // difficulty section appears once at least one CPU player is selected.
 function updateCpuUi() {
-  const x01 = isX01();
-  $$('.cpu-toggle-btn').forEach(btn => {
-    btn.disabled = !x01;
-    if (!x01) btn.classList.remove('active');
-  });
   const anyCpu = $$('.cpu-toggle-btn.active').length > 0;
-  $('#cpu-options').style.display = x01 && anyCpu ? 'block' : 'none';
+  $('#cpu-options').style.display = anyCpu ? 'block' : 'none';
 }
 
 function renderPlayerSuggestions() {
@@ -147,7 +136,7 @@ function createPlayerRow(i) {
   wrapper.innerHTML = `
     <span class="player-number">${i + 1}</span>
     <input type="text" class="name-input" data-index="${i}" placeholder="Player ${i + 1}" maxlength="12" list="player-name-suggestions">
-    <button class="cpu-toggle-btn" title="Play this player as the computer (X01 only)">🤖</button>
+    <button class="cpu-toggle-btn" title="Play this player as the computer">🤖</button>
     <button class="remove-player-btn" title="Remove player">✕</button>
   `;
   wrapper.querySelector('.remove-player-btn').addEventListener('click', () => removePlayerRow(wrapper));

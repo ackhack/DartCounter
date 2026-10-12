@@ -98,18 +98,26 @@ function updateUndoButton() {
 // suggestion: the standard primary target.
 const DEFAULT_PLAYER_AIM = 'T20';
 
-// The field a player was aiming at with `score` left and `dartsLeft` darts
-// remaining in the turn: the first dart of the X01 checkout suggestion
-// (CPU_CHECKOUT_CHART — the same hint the active player card shows, gated
-// the same way: only when the whole checkout fits in the remaining darts),
-// else DEFAULT_PLAYER_AIM (js/polar.js). Non-X01 modes have no suggestion.
+// The field a player was aiming at when their next dart lands:
+//   X01      — the first dart of the checkout suggestion (CPU_CHECKOUT_CHART,
+//              the same hint the active player card shows, gated the same
+//              way: only when the whole checkout fits in the remaining darts)
+//   cricket  — the CPU's aim (triple of the suggested number, see
+//              cpuCricketIdeal, js/cpu.js)
+//   Shanghai — the CPU's aim (win-combo multiplier or triple for points,
+//              see cpuShanghaiIdeal, js/cpu.js)
+//   else     — DEFAULT_PLAYER_AIM (js/polar.js)
 // applyThrowToken (js/input.js) stamps this on bridge darts at throw time;
 // CPU darts carry their own planned field as the aim instead.
-function playerAimDart(score, dartsLeft) {
+function playerAimDart(player, dartsLeft) {
   if (isX01()) {
-    const checkout = CPU_CHECKOUT_CHART[score];
+    const checkout = player ? CPU_CHECKOUT_CHART[player.score] : null;
     if (checkout && checkout.length <= dartsLeft) return checkout[0];
   }
+  if (isCricket() && player) return cpuCricketIdeal(player);
+  // The bridge can still post a dart in the 3s window after the bull round
+  // finished — no current target anymore, so no aim either.
+  if (isShanghai() && state.shanghaiIndex < SHANGHAI_TARGETS.length) return cpuShanghaiIdeal();
   return DEFAULT_PLAYER_AIM;
 }
 

@@ -4,9 +4,10 @@
 // Run: node tests/boards.test.js
 //
 // Plain Node, no test runner — mirrors the project's build-free setup.
-// Loads js/polar.js (which has no DOM dependencies) plus js/constants.js and
-// js/cpu.js (the checkout chart behind the X01 aim suggestion) and asserts
-// the dot-position math, the per-player dart aggregation (only darts with a
+// Loads js/polar.js (which has no DOM dependencies) plus js/constants.js,
+// js/cpu.js (the checkout chart behind the X01 aim suggestion) and
+// js/input.js (playerAimDart + DEFAULT_PLAYER_AIM) and asserts the
+// dot-position math, the per-player dart aggregation (only darts with a
 // recorded landing get dots — CPU and DartIt bridge darts; manual input has
 // no recorded landing and gets none; bust auto-miss fillers are never
 // counted), the dot ideal (stamped on the hit entry at throw time: recorded
@@ -20,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-['constants.js', 'cpu.js', 'polar.js'].forEach((f) => {
+['constants.js', 'cpu.js', 'polar.js', 'input.js'].forEach((f) => {
   vm.runInThisContext(
     fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'),
     { filename: f }
@@ -139,19 +140,14 @@ check('human: manual Bull/BE darts count but get no dots',
   pBull.darts === 2 && pBull.dots.length === 0);
 
 // --- playerAimDart (the throw-time ideal applyThrowToken stamps on bridge darts) ---
-check('playerAimDart: on 9 the suggested dart is 9', playerAimDart(9, 1) === '9');
-check('playerAimDart: 100 -> first of "T20 D20" is T20', playerAimDart(100, 3) === 'T20');
-check('playerAimDart: 40 -> D20', playerAimDart(40, 2) === 'D20');
+// X01: the first dart of the checkout suggestion (the cricket/shanghai
+// mode-aware paths are covered by tests/cpu-aim.test.js).
+check('playerAimDart: on 9 the suggested dart is 9', playerAimDart({ score: 9 }, 1) === '9');
+check('playerAimDart: 100 -> first of "T20 D20" is T20', playerAimDart({ score: 100 }, 3) === 'T20');
+check('playerAimDart: 40 -> D20', playerAimDart({ score: 40 }, 2) === 'D20');
 check('playerAimDart: hidden when the checkout cannot fit (37 needs two, one left -> T20)',
-  playerAimDart(37, 1) === 'T20');
-check('playerAimDart: no chart row -> default T20 (163)', playerAimDart(163, 3) === 'T20');
-check('playerAimDart: non-x01 modes have no suggestion', (() => {
-  const saved = state.mode;
-  state.mode = 'cricket';
-  const d = playerAimDart(9, 1);
-  state.mode = saved;
-  return d === 'T20';
-})());
+  playerAimDart({ score: 37 }, 1) === 'T20');
+check('playerAimDart: no chart row -> default T20 (163)', playerAimDart({ score: 163 }, 3) === 'T20');
 
 // --- fieldColor ---
 check('fieldColor: pinned format (single 20 is the hue-0 mid step)',

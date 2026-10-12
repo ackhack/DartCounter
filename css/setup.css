@@ -155,7 +155,7 @@
   color: var(--text-muted);
 }
 
-/* CPU Toggle (per player row, X01 only) */
+/* CPU Toggle (per player row) */
 .cpu-toggle-btn {
   width: 1.6rem;
   height: 1.6rem;

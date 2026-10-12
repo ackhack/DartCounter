@@ -6,7 +6,7 @@
 let state = {
   mode: 'x01',           // 'x01', 'cricket' or 'shanghai'
   x01Start: 301,
-  cpuDifficulty: 50,     // 0-100, computer opponent (X01 only)
+  cpuDifficulty: 50,     // 0-100, computer opponent
   players: [],           // [{id, name, score, turns, runs, marks, finished}]
   currentPlayerIndex: 0,
   throwCount: 0,         // 0-2 within current turn
