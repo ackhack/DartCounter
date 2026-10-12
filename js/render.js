@@ -90,7 +90,7 @@ function renderGame() {
 function getModeSpecificDisplay(player) {
   if (isX01()) {
     const checkout = CPU_CHECKOUT_CHART[player.score];
-    if (checkout && state.throwCount - 1 + checkout.length <= SCORES_PER_TURN) {
+    if (checkout && state.throwCount + checkout.length <= SCORES_PER_TURN) {
       return checkout
         .map(d => `<span class="checkout-dart throw-slot">${d}</span>`)
         .join('<span class="checkout-sep">⇒</span>');
