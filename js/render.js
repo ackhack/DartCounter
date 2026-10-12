@@ -112,23 +112,25 @@ function modeTargetHtml(n) {
   return `<span class="mode-target">${n === BULL_NUMBER ? 'Bull' : n}</span>`;
 }
 
-// Cricket — the number the active player should throw:
-// behind on points: the highest number not closed by every player (the board
-// still has work on it, so keep closing from the top).
-// leading on points: the highest number the player has not hit 3 times yet.
+// Cricket — the number the active player should throw (plans/cricketStrat.txt):
+// behind on points and holding a closed number an opponent has not closed yet
+// (so it still scores): the highest-value such number in the priority order
+// (bull, 20, 19, …, 15) — bank points to close the gap.
+// otherwise: the first number in that same order the player has not closed
+// yet — keep closing bull-first, then descending.
 // Points are compared among the players still in the game (finished players
-// are out of the race). null = nothing to show (e.g. the player has closed
-// every number for themselves, or the board is fully closed).
+// are out of the race). null = nothing to show (the player is fully closed
+// while not behind, or the board is fully closed).
 function cricketSuggestedNumber(player) {
   const remaining = state.players.filter(p => !p.finished);
   const maxRuns = remaining.length > 0 ? Math.max(...remaining.map(p => p.runs)) : 0;
-  const leading = player.runs >= maxRuns;
-  for (let i = CRICKET_NUMBERS.length - 1; i >= 0; i--) {
-    const n = CRICKET_NUMBERS[i];
-    const done = leading
-      ? (player.marks[n] || 0) >= CRICKET_TARGET_MARKS
-      : cricketAllPlayersClosed(n);
-    if (!done) return n;
+  if (player.runs < maxRuns) {
+    for (const n of CRICKET_PRIORITY) {
+      if ((player.marks[n] || 0) >= CRICKET_TARGET_MARKS && !cricketAllPlayersClosed(n)) return n;
+    }
+  }
+  for (const n of CRICKET_PRIORITY) {
+    if ((player.marks[n] || 0) < CRICKET_TARGET_MARKS) return n;
   }
   return null;
 }

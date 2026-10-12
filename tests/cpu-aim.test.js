@@ -153,5 +153,43 @@ cpu = cricketState([
 check('cricket: board fully closed -> harmless T20 fallback',
   cpuCricketIdeal(cpu) === 'T20', cpuCricketIdeal(cpu));
 
+// Behind -> score on the highest-value number the CPU has closed that an
+// opponent has not (banking outranks continuing to close).
+cpu = cricketState([
+  { runs: 0, marks: [0, 0, 0, 0, 0, 3, 0] }, // CPU closed 20 only
+  { runs: 10, marks: [0, 0, 0, 0, 0, 0, 0] } // opp nothing closed
+]);
+check('cricket: behind, 20 closed + open for opp -> bank T20 (60 pts) over the bull (50)',
+  cpuCricketIdeal(cpu) === 'T20', cpuCricketIdeal(cpu));
+
+cpu = cricketState([
+  { runs: 0, marks: [0, 0, 0, 0, 0, 3, 3] }, // CPU closed 20 + bull
+  { runs: 10, marks: [0, 0, 0, 0, 0, 0, 0] }
+]);
+check('cricket: behind, bull + 20 both scoring -> bull first in priority (BE)',
+  cpuCricketIdeal(cpu) === 'BE', cpuCricketIdeal(cpu));
+
+cpu = cricketState([
+  { runs: 0, marks: [0, 0, 0, 0, 0, 3, 3] }, // CPU closed 20 + bull
+  { runs: 10, marks: [0, 0, 0, 0, 0, 3, 0] } // opp closed 20 -> 20 dead
+]);
+check('cricket: behind, 20 closed by everyone -> bull is the only scoring number (BE)',
+  cpuCricketIdeal(cpu) === 'BE', cpuCricketIdeal(cpu));
+
+cpu = cricketState([
+  { runs: 0, marks: [0, 0, 0, 0, 0, 3, 3] }, // CPU closed 20 + bull
+  { runs: 10, marks: [0, 0, 0, 0, 0, 3, 3] } // opp too -> both dead
+]);
+check('cricket: behind, no scoring number left -> keep closing in priority order (T19)',
+  cpuCricketIdeal(cpu) === 'T19', cpuCricketIdeal(cpu));
+
+// Leading (or tied) -> close in bull-first order, 20 before nothing.
+cpu = cricketState([
+  { runs: 10, marks: [0, 0, 0, 0, 0, 3, 0] }, // leading, 20 closed, bull open
+  { runs: 0, marks: [0, 0, 0, 0, 0, 0, 0] }
+]);
+check('cricket: leading, bull open before 19 -> aim the bulls-eye (bull first)',
+  cpuCricketIdeal(cpu) === 'BE', cpuCricketIdeal(cpu));
+
 console.log(failures === 0 ? 'ALL PASS' : failures + ' FAILURES');
 process.exit(failures ? 1 : 0);

@@ -33,6 +33,9 @@ const PLAYER_COLORS = [
 ];
 const CRICKET_NUMBERS = [15, 16, 17, 18, 19, 20, 25];
 const BULL_NUMBER = 25;
+// Closing/scoring order (plans/cricketStrat.txt): bull first, then
+// descending — the bull is the first target to close, the 20 the best bank.
+const CRICKET_PRIORITY = [BULL_NUMBER, 20, 19, 18, 17, 16, 15];
 const CRICKET_TARGET_MARKS = 3;
 // Shanghai 21: every number 1-20 in order, then the bull as the 21st target.
 const SHANGHAI_TARGETS = [];

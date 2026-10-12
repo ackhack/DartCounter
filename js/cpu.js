@@ -226,18 +226,20 @@ function cpuNextPlannedDart(player) {
 
 // The field the CPU aims at in cricket: the triple of the suggested number
 // (cricketSuggestedNumber, js/render.js — the same hint the active player
-// card shows). When that is null (player fully closed while leading, or
-// the board fully closed) it banks points on the highest number not closed
-// by every player — its own marks there are already full, so every hit
-// scores. The bull has no triple ring: the bulls-eye is its highest-value
-// field (2 marks / 50 pts) and dominates for both closing and banking.
+// card shows: behind -> highest-value scoring number, else the first not-
+// closed number in bull-first priority order). When that is null (player
+// fully closed while not behind, or the board fully closed) it banks points
+// on the highest-value number not closed by every player — its own marks
+// there are already full, so every hit scores. The bull has no triple ring:
+// the bulls-eye is its highest-value field (2 marks / 50 pts) and dominates
+// for both closing and banking.
 function cpuCricketIdeal(player) {
   let n = cricketSuggestedNumber(player);
   if (n === null) {
     n = 20;
-    for (let i = CRICKET_NUMBERS.length - 1; i >= 0; i--) {
-      if (!cricketAllPlayersClosed(CRICKET_NUMBERS[i])) {
-        n = CRICKET_NUMBERS[i];
+    for (const k of CRICKET_PRIORITY) {
+      if (!cricketAllPlayersClosed(k)) {
+        n = k;
         break;
       }
     }
