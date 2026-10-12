@@ -160,19 +160,21 @@ function fieldColor(token, alpha) {
     : 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + alpha + ')';
 }
 
-// Aggregate every dart one player threw, for the end-screen boards.
+// Every recorded landing one player threw, for the per-mode hit stats.
 // `turns` is the list of turn objects (state.history, optionally plus the
 // in-progress _currentPlayerTurn). Only darts with a recorded landing
-// (CPU darts, DartIt bridge darts) get a dot — manual input has no recorded
-// landing and gets none (the center of the scored field would be a guess);
-// it still counts in `darts`. Bust auto-miss fillers ('MISS') were never
-// thrown and are skipped; real misses count in `misses` but get no dot.
-// Each dot carries `ideal` — the field the dart aimed at, stamped on the
-// hit entry at throw time (applyThrowToken): the recorded aim on CPU darts,
-// else the X01 checkout suggestion / DEFAULT_PLAYER_AIM. fieldColor() keys
-// off it for the dot/zone colors.
-function collectBoardDarts(turns, playerId) {
-  const dots = [];
+// (CPU darts, DartIt bridge darts) carry an entry — manual input has none
+// (the center of the scored field would be a guess); it still counts in
+// `darts`. Bust auto-miss fillers ('MISS') were never thrown and are
+// skipped; thrown misses (recorded r > 1, or a manual 'Miss') count in
+// `misses` and — when recorded — stay in `hits` too, so the persisted list
+// is the full landing log. Each entry is { r, angle, ideal }; `ideal` is
+// the field the dart aimed at, stamped on the hit entry at throw time
+// (applyThrowToken): the recorded aim on CPU darts, else the X01 checkout
+// suggestion / DEFAULT_PLAYER_AIM. fieldColor() keys off it for the
+// dot/zone colors.
+function collectPlayerHits(turns, playerId) {
+  const hits = [];
   let darts = 0;
   let misses = 0;
 
@@ -186,14 +188,22 @@ function collectBoardDarts(turns, playerId) {
 
       const hit = turn.hits && hitIdx < turn.hits.length ? turn.hits[hitIdx++] : null;
       if (hit) {
-        if (hit.r <= 1) dots.push({ r: hit.r, angle: hit.angle, ideal: hit.ideal || DEFAULT_PLAYER_AIM });
-        else misses++;
+        hits.push({ r: hit.r, angle: hit.angle, ideal: hit.ideal || DEFAULT_PLAYER_AIM });
+        if (hit.r > 1) misses++;
       } else if (fieldLabel === 'Miss') {
         misses++;
       }
     }
   }
-  return { dots: dots, darts: darts, misses: misses };
+  return { hits: hits, darts: darts, misses: misses };
+}
+
+// Aggregate every dart one player threw, for the end-screen boards: the
+// in-board dots of collectPlayerHits (misses are not plotted — they have no
+// position on the board face).
+function collectBoardDarts(turns, playerId) {
+  const { hits, darts, misses } = collectPlayerHits(turns, playerId);
+  return { dots: hits.filter(h => h.r <= 1), darts: darts, misses: misses };
 }
 
 // How far beyond the farthest dart a zone disk extends (board units,
@@ -228,4 +238,53 @@ function boardZones(dots) {
     zones.push({ ideal: ideal, r: aim.r, angle: aim.angle, radius: farthest + BOARD_ZONE_PADDING });
   });
   return zones;
+}
+
+// Build a .board-face (the dartboard.png square) with the hit overlay:
+// translucent zone disks per ideal field (boardZones), one dot per in-board
+// dart colored by its ideal (fieldColor), and a small x on each zone's
+// center. Appended in that order, so the dots sit on the zones and the x's
+// on top of the dots. Shared by the end-screen boards (renderEndBoards)
+// and the stats-screen boards; the face is sized by --board-size on the
+// parent (modal.css / stats.css).
+function createBoardFace(dots) {
+  const face = document.createElement('div');
+  face.className = 'board-face';
+
+  const zones = boardZones(dots);
+  zones.forEach((z) => {
+    const pos = boardDotPosition(z.r, z.angle);
+    const zone = document.createElement('span');
+    zone.className = 'board-zone';
+    zone.style.left = pos.left + '%';
+    zone.style.top = pos.top + '%';
+    const size = 2 * z.radius * 50 * DARTBOARD_PLAYABLE_FRACTION;
+    zone.style.width = size + '%';
+    zone.style.height = size + '%';
+    zone.style.backgroundColor = fieldColor(z.ideal, 0.18);
+    zone.style.borderColor = fieldColor(z.ideal, 0.5);
+    face.appendChild(zone);
+  });
+
+  dots.forEach((d) => {
+    const pos = boardDotPosition(d.r, d.angle);
+    const dot = document.createElement('span');
+    dot.className = 'board-dot';
+    dot.style.left = pos.left + '%';
+    dot.style.top = pos.top + '%';
+    dot.style.backgroundColor = fieldColor(d.ideal);
+    face.appendChild(dot);
+  });
+
+  zones.forEach((z) => {
+    const pos = boardDotPosition(z.r, z.angle);
+    const x = document.createElement('span');
+    x.className = 'board-aim-x';
+    x.style.left = pos.left + '%';
+    x.style.top = pos.top + '%';
+    x.style.color = fieldColor(z.ideal);
+    face.appendChild(x);
+  });
+
+  return face;
 }

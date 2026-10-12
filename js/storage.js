@@ -41,9 +41,16 @@ function loadStats() {
       // bestTurn then stored the player's total runs per game, so any X01
       // value above the max single-turn score is definitely corrupt. Reset
       // it so the stat rebuilds from new games instead of staying pinned.
+      // Entries written before the hit stats existed get empty defaults.
       for (const entry of Object.values(parsed.players)) {
-        const x01 = entry && entry.modes && entry.modes.x01;
+        if (!entry || !entry.modes) continue;
+        const x01 = entry.modes.x01;
         if (x01 && x01.bestTurn > MAX_X01_TURN) x01.bestTurn = 0;
+        for (const m of Object.values(entry.modes)) {
+          if (!m) continue;
+          if (!Array.isArray(m.hits)) m.hits = [];
+          if (typeof m.totalMisses !== 'number') m.totalMisses = 0;
+        }
       }
     }
     return parsed;
@@ -102,6 +109,7 @@ function emptyModeStats() {
     totalRuns: 0,
     totalTurns: 0,
     totalDarts: 0,
+    totalMisses: 0, // thrown darts that missed the board (per-game end-screen counting)
     maxDarts: 0,
     bestTurn: 0,
     bestScore: 0,  // X01: lowest remaining score
@@ -111,7 +119,13 @@ function emptyModeStats() {
     avgPerTurn: 0,
     avgPerGame: 0,
     winRate: 0,
-    checkoutPct: 0
+    checkoutPct: 0,
+    // Every recorded landing of this player in this mode, { r, angle,
+    // ideal } — CPU darts and DartIt bridge darts (manual input records
+    // none). Misses (r > 1) are kept; capped at MAX_PERSISTED_HITS (most
+    // recent games win). Rendered in the end-screen board style on the
+    // stats screen (createBoardFace).
+    hits: []
   };
 }
 
@@ -183,6 +197,24 @@ function updatePlayerStats(player, isWinner) {
     m.checkoutAttempts += co.attempts;
     m.checkouts += co.made;
   }
+
+  // Persist this game's recorded landings (CPU darts, DartIt bridge darts)
+  // to the per-mode hit list — the stats screen renders it in the
+  // end-screen board style. Recomputed from the live history, so undo
+  // can't skew it. A manual End can fire mid-turn, so include the
+  // in-progress turn too — the end-screen boards show it as well (for
+  // players who don't own it, collectPlayerHits finds nothing).
+  const turns = state._currentPlayerTurn
+    ? state.history.concat([state._currentPlayerTurn])
+    : state.history;
+  const board = collectPlayerHits(turns, player.id);
+  if (board.hits.length > 0) {
+    if (!Array.isArray(m.hits)) m.hits = [];
+    m.hits.push(...board.hits);
+    if (m.hits.length > MAX_PERSISTED_HITS) m.hits = m.hits.slice(-MAX_PERSISTED_HITS);
+  }
+  m.totalMisses = (m.totalMisses || 0) + board.misses;
+
   computeModeAverages(m);
   saveStats();
 }

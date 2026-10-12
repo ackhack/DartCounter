@@ -4,16 +4,18 @@
 // Run: node tests/boards.test.js
 //
 // Plain Node, no test runner — mirrors the project's build-free setup.
-// Loads js/polar.js (which has no DOM dependencies) plus js/constants.js,
-// js/cpu.js (the checkout chart behind the X01 aim suggestion) and
-// js/input.js (playerAimDart + DEFAULT_PLAYER_AIM) and asserts the
-// dot-position math, the per-player dart aggregation (only darts with a
-// recorded landing get dots — CPU and DartIt bridge darts; manual input has
-// no recorded landing and gets none; bust auto-miss fillers are never
-// counted), the dot ideal (stamped on the hit entry at throw time: recorded
-// aim for CPU darts, else the throw-time X01 checkout suggestion / default
-// T20), the playerAimDart suggestion itself, and the zone-disk math (one
-// disk per ideal throw, reaching its farthest dart).
+// Loads the pure parts of js/polar.js (the DOM builder createBoardFace is
+// not covered here) plus js/constants.js, js/cpu.js (the checkout chart
+// behind the X01 aim suggestion) and js/input.js (playerAimDart +
+// DEFAULT_PLAYER_AIM) and asserts the dot-position math, the per-player
+// dart aggregation (only darts with a recorded landing get dots — CPU and
+// DartIt bridge darts; manual input has no recorded landing and gets none;
+// bust auto-miss fillers are never counted), the recorded-landing log
+// (collectPlayerHits: the full hit list incl. misses, what the per-mode
+// stats persist), the dot ideal (stamped on the hit entry at throw time:
+// recorded aim for CPU darts, else the throw-time X01 checkout suggestion
+// / default T20), the playerAimDart suggestion itself, and the zone-disk
+// math (one disk per ideal throw, reaching its farthest dart).
 // Exits non-zero on any failure.
 'use strict';
 
@@ -117,6 +119,24 @@ check('human: 3 darts, 0 dots, 1 miss (no recorded landing -> no dots)',
 check('other players are not mixed in', collectBoardDarts(allTurns, 2).darts === 0);
 check('missing turns entries are tolerated',
   collectBoardDarts([null, { playerId: 0, throws: [] }], 0).darts === 0);
+
+// --- collectPlayerHits (the recorded-landing log the per-mode stats persist) ---
+const h0 = collectPlayerHits(allTurns, 0);
+check('CPU: 5 recorded landings (the thrown miss is kept, auto-filler is not)',
+  h0.hits.length === 5, h0.hits.length);
+check('CPU: darts/misses match the board aggregation',
+  h0.darts === p0.darts && h0.misses === p0.misses, JSON.stringify(h0));
+check('CPU: the miss entry stays in the log with r > 1',
+  h0.hits.some(h => h.r > 1) && h0.hits.filter(h => h.r > 1).length === 1);
+check('CPU: board dots are exactly the in-board entries of the log',
+  JSON.stringify(h0.hits.filter(h => h.r <= 1)) === JSON.stringify(p0.dots));
+check('CPU: log entries carry the stamped ideal',
+  h0.hits.every(h => typeof h.ideal === 'string' && h.ideal.length > 0)
+  && h0.hits[0].ideal === 'T20');
+
+const h1 = collectPlayerHits(allTurns, 1);
+check('human: manual input records no landings (empty log), miss still counted',
+  h1.hits.length === 0 && h1.darts === 3 && h1.misses === 1, JSON.stringify(h1));
 
 // --- ideal tracking (the key for dot/zone colors) ---
 check('CPU: dot ideal is the recorded aim', p0.dots[0].ideal === 'T20');

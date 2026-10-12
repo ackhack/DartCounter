@@ -164,47 +164,8 @@ function renderEndBoards(results) {
     name.style.color = p.color;
     name.textContent = p.name;
 
-    const face = document.createElement('div');
-    face.className = 'board-face';
-
-    // Translucent zone disk per ideal field, appended first so the dots sit
-    // on top: centered on the field's aim point, reaching the farthest dart
-    // that aimed at it (see boardZones).
-    boardZones(board.dots).forEach((z) => {
-      const pos = boardDotPosition(z.r, z.angle);
-      const zone = document.createElement('span');
-      zone.className = 'board-zone';
-      zone.style.left = pos.left + '%';
-      zone.style.top = pos.top + '%';
-      const size = 2 * z.radius * 50 * DARTBOARD_PLAYABLE_FRACTION;
-      zone.style.width = size + '%';
-      zone.style.height = size + '%';
-      zone.style.backgroundColor = fieldColor(z.ideal, 0.18);
-      zone.style.borderColor = fieldColor(z.ideal, 0.5);
-      face.appendChild(zone);
-    });
-
-    board.dots.forEach((d) => {
-      const pos = boardDotPosition(d.r, d.angle);
-      const dot = document.createElement('span');
-      dot.className = 'board-dot';
-      dot.style.left = pos.left + '%';
-      dot.style.top = pos.top + '%';
-      dot.style.backgroundColor = fieldColor(d.ideal);
-      face.appendChild(dot);
-    });
-
-    // Small x on each zone's center (the ideal aim point), appended last so
-    // it stays visible even when a dot lands exactly on the aim.
-    boardZones(board.dots).forEach((z) => {
-      const pos = boardDotPosition(z.r, z.angle);
-      const x = document.createElement('span');
-      x.className = 'board-aim-x';
-      x.style.left = pos.left + '%';
-      x.style.top = pos.top + '%';
-      x.style.color = fieldColor(z.ideal);
-      face.appendChild(x);
-    });
+    // Zone disks + dots + aim x's in one shared builder (js/polar.js).
+    const face = createBoardFace(board.dots);
 
     const meta = document.createElement('div');
     meta.className = 'player-board-meta';

@@ -135,7 +135,9 @@ function applyThrowToken(token, hit) {
 
   if (hit) {
     const player = state.players[state.currentPlayerIndex];
-    input.hit = hit.ideal ? hit : { ...hit, ideal: playerAimDart(player ? player.score : 0, SCORES_PER_TURN - state.throwCount) };
+    // Pass the player object — playerAimDart reads player.score for the
+    // X01 checkout row and hands the object to cpuCricketIdeal (marks).
+    input.hit = hit.ideal ? hit : { ...hit, ideal: playerAimDart(player, SCORES_PER_TURN - state.throwCount) };
   } else {
     input.hit = null;
   }
