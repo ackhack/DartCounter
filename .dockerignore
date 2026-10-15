@@ -1,0 +1,11 @@
+.git
+.gitingore
+.qwen
+tests
+plans
+*.md
+gen_dartboard.py
+Dockerfile
+docker-compose.yml
+.dockerignore
+plugin
